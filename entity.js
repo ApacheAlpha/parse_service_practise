@@ -6,6 +6,9 @@ class EntityGroup extends Parse.Object {
 		// this.name = this.constructor.name
 		// this.insert_list = []
 	}
+	static get Permissions() {
+		return ['read', 'write', 'grant']
+	}
 
 	// 把实体添加到当前实体组的fieldName数组字段里，并设置好权限规则
 	// fieldName：String，字段名
@@ -15,16 +18,39 @@ class EntityGroup extends Parse.Object {
 			console.log('typeof error:entity need a object or fieldName Must be entered')
 			return
 		}
+		// const org_id = this.organization.id
+		const org_id = '001'
 
-		try {
-			const query_data = new Parse.Query(this.name)
-			const query_data_list = await query_data.find({ useMasterKey: true })
-			const relation = query_data_list[0].relation(fieldName)
-			relation.add(entity)
-			query_data_list[0].save()
-		} catch (error) {
-			console.log('addEntity error: ', error)
+		const query_data = new Parse.Query(Parse.Role)
+		query_data.containedIn('name', [`Organization.${org_id}.read`, `Organization.${org_id}.write`, `Organization.${org_id}.grant`])
+		const query_data_list = await query_data.find({ useMasterKey: true })
+
+		console.log('::::::::1:::::::::::::', this.organization)
+		console.log(':::::::::2::::::::::::', fieldName)
+		console.log(':::::::::::3::::::::::', entity)
+
+		const relation = this.organization.relation(fieldName)
+		relation.add(entity)
+		await this.organization.save()
+
+		for (let index = 0; index < query_data_list.length; index++) {
+			const element = query_data_list[index]
+			const roleACL = new Parse.ACL()
+			roleACL.setRoleReadAccess(element.get('name'), true)
+			roleACL.setRoleWriteAccess(element.get('name'), true)
+			roleACL.setRoleReadAccess(element.get('name'), true)
+			entity.setACL(roleACL)
+			await entity.save()
 		}
+	}
+
+	// 把实体从当前实体组的fieldName数组字段里删除
+	// fieldName：String，字段名
+	// entity：Parse.Object，实体
+	async removeEntity(fieldName, entity) {
+		const relation = this.organization.relation(fieldName);
+		relation.remove(entity);
+		await this.organization.save()
 	}
 
 	// 把实体组添加到当前实体组fieldName数组字段里，并设置好权限规则
@@ -36,16 +62,26 @@ class EntityGroup extends Parse.Object {
 			return
 		}
 		const roleACL = new Parse.ACL()
-		roleACL.setRoleReadAccess('Organization-8CmJyfFubz-read-Organization',true)
-		roleACL.setRoleWriteAccess('Organization-8CmJyfFubz-write-Organization',true)
-		roleACL.setRoleReadAccess('Organization-8CmJyfFubz-write-Organization',true)
+		roleACL.setRoleReadAccess('Organization-8CmJyfFubz-read-Organization', true)
+		roleACL.setRoleWriteAccess('Organization-8CmJyfFubz-write-Organization', true)
+		roleACL.setRoleReadAccess('Organization-8CmJyfFubz-write-Organization', true)
 		entityGroup.setACL(roleACL)
-		await	entityGroup.save()
+		await entityGroup.save()
 
 		const relation = this.organization.relation(fieldName)
 		relation.add(entityGroup)
 		await this.organization.save()
 	}
+
+	// 把实体组从当前实体组fieldName数组字段里删除，并设置好权限规则
+	// 实体组下的资源也会被删除
+	// fieldName：String，字段名
+	// entityGroup：EntityGroup，实体组
+	async removeEntityGroup(fieldName, entityGroup) {
+
+
+	}
+
 
 	// 向实体组添加成员，创建对应的角色权限，并添加此成员到角色里
 	// user: Parse.User，要添加的用户
@@ -57,13 +93,13 @@ class EntityGroup extends Parse.Object {
 
 		const roleACL = new Parse.ACL()
 		for (let index = 0; index < permissions.length; index++) {
-			if (array[index]==='read') {
-				const read_Role = new Parse.Role(`Organization-${this.organization.id}-read-user`, roleACL)
+			if (permissions[index] === 'read') {
+				const read_Role = new Parse.Role(`Organization.${this.organization.id}.read-user`, roleACL)
 				read_Role.getUsers().add(user)
 				await read_Role.save()
 			}
-			if (array[index]==='write') {
-				const write_Role = new Parse.Role(`Organization-${this.organization.id}-write-user`, roleACL)
+			if (permissions[index] === 'write') {
+				const write_Role = new Parse.Role(`Organization.${this.organization.id}.write-user`, roleACL)
 				write_Role.getUsers().add(user)
 				await write_Role.save()
 			}
@@ -131,10 +167,10 @@ class EntityGroup extends Parse.Object {
 		const query_data = new Parse.Query(Parse.Role)
 		const role_list = await query_data.find({ useMasterKey: true })
 		for (let index = 0; index < role_list.length; index++) {
-			console.log('))))))))))))))))))',			role_list[index]
+			console.log('))))))))))))))))))', role_list[index]
 			)
 			// if (role_list[index].) {
-				
+
 			// }
 
 			// const acl = new Parse.ACL()
