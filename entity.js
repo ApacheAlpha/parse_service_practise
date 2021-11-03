@@ -213,6 +213,8 @@ class EntityGroup extends Parse.Object {
 	}
 }
 
+
+
 // 组织实体组
 class Organization extends EntityGroup {
 	addProject(project) {
