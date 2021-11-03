@@ -181,36 +181,19 @@ class EntityGroup extends Parse.Object {
 			role_acl.setReadAccess(user, false)
 			role_acl.setWriteAccess(user, false)
 			role_list[index].setACL(role_acl)
-			role_list[index].save()
+			await role_list[index].save()
 		}
 	}
 
 	// 改变某实体组成员的权限
 	// user: Parse.User，要改变的用户
 	// permissions：Array<String>，该用户在当前实体拥有的权限
-	async addMemberPermission(user, permissions = EntityGroup.Permissions, withGrant) {
-		const role_query = new Parse.Query(Parse.Role)
-		const role_list = await role_query.find({ useMasterKey: true })
-		for (let index = 0; index < role_list.length; index++) {
-			const role_acl = role_list[index].getACL()
-			role_acl.setReadAccess(user, true)
-			role_acl.setWriteAccess(user, true)
-			role_list[index].setACL(organization_result_acl)
-			role_list[index].save()
-		}
+	// withGrant: 是否分配权限控制权限，子实体组此参数不能为true
+	async setMemberPermission(user, permissions = EntityGroup.Permissions, withGrant) {
+
 	}
 
-	async ReduceMemberPermission(user, permissions = ['read', 'write']) {
-		const role_query = new Parse.Query(Parse.Role)
-		const role_list = await role_query.find({ useMasterKey: true })
-		for (let index = 0; index < role_list.length; index++) {
-			const role_acl = role_list[index].getACL()
-			role_acl.setReadAccess(user, false)
-			role_acl.setWriteAccess(user, false)
-			role_list[index].setACL(organization_result_acl)
-			role_list[index].save()
-		}
-	}
+
 }
 
 
