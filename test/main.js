@@ -4,9 +4,7 @@ const { Parse } = require('./parse')
 
 class organization extends entity.EntityGroup {
 	constructor() {
-		super()
-		this.organization = null
-		this.name = this.constructor.name
+		return 	super('organization')
 	}
 
 	addEntity(entity) {
@@ -41,27 +39,26 @@ class organization extends entity.EntityGroup {
 	// 	}
 
 }
+Parse.Object.registerSubclass('organization',organization)
 
+async function test() {
+	// const org = new organization()
 
-// async function test() {
-// 	// const org = new organization()
-// 	const [User] =await new Parse.Query(Parse.User).find()
-// 	console.log('))))))77777)2))))))))))',User)
-// 	const [organization] =await new Parse.Query('organization').find()
+	const [organization_one] = await new Parse.Query(organization).find()
+	console.log(organization_one)
+	organization_one.addEntity({})
 
-// 	const withGrant_roleACL = organization.getACL()
-// 	console.log('))))))77777)2))))))))))',withGrant_roleACL)
+	// const [device] = await new Parse.Query('project').find()
+	// console.log(device)
 
-// 	withGrant_roleACL.setReadAccess(User, true)
-// 	withGrant_roleACL.setWriteAccess(User, true)
-// 	organization.setACL(withGrant_roleACL)
-// 	await organization.save()
-
-// }
-// test()
+	// org.addEntity('project',)
+	// org.set('name','qeqweqwew')
+	// await org.save()
+}
+test()
 // 1、
 // async function test_addEntity() {
-// 	const org = new organization()
+// const org = new organization()
 // 	const inv_obj = new Parse.Object('inventory')
 // 	inv_obj.set('sn', '测试000')
 // 	await inv_obj.save()
@@ -70,6 +67,7 @@ class organization extends entity.EntityGroup {
 // 	const organization_list = await organization_query.find({ useMasterKey: true })
 // 	org.organization = organization_list[0]
 // 	org.addEntity(inv_obj)
+// org.find({ useMasterKey: true })
 // }
 // test_addEntity()
 // 2、

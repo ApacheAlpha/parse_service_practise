@@ -1,9 +1,6 @@
 const { Parse } = require('./test/parse')
 // 实体组抽象类
 class EntityGroup extends Parse.Object {
-	constructor(...args) {
-		super(...args)
-	}
 	static get Permissions() {
 		return ['read', 'write']
 	}
@@ -12,40 +9,57 @@ class EntityGroup extends Parse.Object {
 		return false
 	}
 
+	constructor(...args) {
+		super(...args)
+	}
+
+	async  ensureRole(Permission,class_name) {
+		const tamplate = `Organization__${this.id}__${Permission}`
+
+
+		
+	}
+
+	async  getRoleName() {
+		
+	}
+
+
+
+
 	// 把实体添加到当前实体组的fieldName数组字段里，并设置好权限规则
 	// fieldName：String，字段名
 	// entity：Parse.Object，实体
 	async addEntity(fieldName, entity) {
-		if (typeof entity !== 'object' || !fieldName) {
+		if (!(entity instanceof EntityGroup) || !fieldName) {
 			console.log('typeof error:entity need a object or fieldName Must be entered')
 			return
 		}
-		try {
-			const relation = this.organization.relation(fieldName)
-			relation.add(entity)
-			await this.organization.save()
+		const relation = this.organization.relation(fieldName)
+		relation.add(entity)
+		await this.organization.save()
 
-			const roleACL = new Parse.ACL()
-			roleACL.setRoleReadAccess(`Organization__${org_id}__grant`, true)
-			roleACL.setRoleWriteAccess(`Organization__${org_id}__grant`, true)
-			const role_A = new Parse.Role(`Organization__${org_id}__read__Inventory`, roleACL)
-			const role_B = new Parse.Role(`Organization__${org_id}__write__Inventory`, roleACL)
-			await role_A.save()
-			await role_B.save()
+		const roleACL = new Parse.ACL()
+		roleACL.setRoleReadAccess(`Organization__${org_id}__grant`, true)
+		roleACL.setRoleWriteAccess(`Organization__${org_id}__grant`, true)
+		const role_A = new Parse.Role(`Organization__${org_id}__read__Inventory`, roleACL)
+		const role_B = new Parse.Role(`Organization__${org_id}__write__Inventory`, roleACL)
+		await role_A.save()
+		await role_B.save()
 
-			const inventory_roleACL = new Parse.ACL()
-			inventory_roleACL.setRoleWriteAccess(`Organization__${org_id}__read__Inventory`, true)
-			inventory_roleACL.setRoleReadAccess(`Organization__${org_id}__write__Inventory`, true)
-			entity.setACL(inventory_roleACL)
-			await entity.save()
-		} catch (error) {
-			const role = new Parse.Query(Parse.Role)
-			role.containedIn('name',[`Organization__${org_id}__read__Inventory`,`Organization__${org_id}__write__Inventory`])
-			const role_list = role.find()
-			for (let index = 0; index < role_list.length; index++) {
-				await array[index].destroy()
-			}
-		}
+		const inventory_roleACL = new Parse.ACL()
+		inventory_roleACL.setRoleWriteAccess(`Organization__${org_id}__read__Inventory`, true)
+		inventory_roleACL.setRoleReadAccess(`Organization__${org_id}__write__Inventory`, true)
+		entity.setACL(inventory_roleACL)
+		await entity.save()
+		// } catch (error) {
+		// 	const role = new Parse.Query(Parse.Role)
+		// 	role.containedIn('name',[`Organization__${org_id}__read__Inventory`,`Organization__${org_id}__write__Inventory`])
+		// 	const role_list = role.find()
+		// 	for (let index = 0; index < role_list.length; index++) {
+		// 		await array[index].destroy()
+		// 	}
+		// }
 	}
 
 	// 把实体从当前实体组的fieldName数组字段里删除
