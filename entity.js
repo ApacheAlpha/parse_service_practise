@@ -69,8 +69,8 @@ class EntityGroup extends Parse.Object {
 	// fieldName：String，字段名
 	// entity：Parse.Object，实体
 	async addEntity(fieldName, entity) {
-		if (!(entity instanceof Parse.Object) || !fieldName) {
-			console.log('type error: entity must be  Parse.Object or fieldName does not exist')
+		if (!(entity instanceof Parse.Object) || !fieldName || !(typeof fieldName !== 'string')) {
+			console.log('type error: entity must be  Parse.Object or fieldName does not exist or fieldName does not String')
 			return
 		}
 		const relation = this.relation(fieldName)
