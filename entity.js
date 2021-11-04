@@ -1,80 +1,182 @@
-const { Parse } = require('./test/parse')
+/* eslint-disable no-await-in-loop */
+/* eslint-disable class-methods-use-this */
+/* eslint-disable max-classes-per-file */
+const { Parse } = require('./parse')
 // 实体组抽象类
 class EntityGroup extends Parse.Object {
-	constructor() {
-		super()
-		this.name = this.constructor.name
-		this.insert_list = []
+	static get Permissions() {
+		return ['read', 'write']
+	}
+
+	static get withGrant() {
+		return false
+	}
+
+	async recursion(realtionResult) {
+		const relationObj = realtionResult.attributes
+		const keyList = Object.keys(relationObj)
+		for (let index = 0; index < keyList.length; index += 1) {
+			if (relationObj[keyList[index]] instanceof Parse.Relation) {
+				const newRelation = realtionResult.relation(keyList[index])
+				const newRealtionResult = await newRelation.query().find()
+				for (let start = 0; start < newRealtionResult.length; start += 1) {
+					await this.recursion(newRealtionResult[start])
+					await realtionResult.destroy()
+				}
+			}
+		}
+	}
+
+	async createGrant(newGrantRole) {
+		const roleACL = new Parse.ACL()
+		roleACL.setRoleReadAccess(newGrantRole, true)
+		roleACL.setRoleWriteAccess(newGrantRole, true)
+		const role = new Parse.Role(newGrantRole, roleACL)
+		await role.save()
+		return newGrantRole
+	}
+
+	async getRoleName(entityGroupName, permission, className) {
+		const roleQuery = new Parse.Query(Parse.Role)
+		const grantRole = `${entityGroupName}__${this.id}__${permission}`
+		const grantRoleResult = await roleQuery.equalTo('name', grantRole).find()
+		if (permission === 'grant') {
+			if (!grantRoleResult.length) {
+				const grantResult = await this.createGrant(grantRole)
+				return grantResult
+			}
+		} else {
+			if (!grantRoleResult.length) {
+				await this.createGrant(grantRole)
+			}
+			const roleTemplate = `${entityGroupName}__${this.id}__${permission}__${className}`
+			const grantRoleTemplateResult = await roleQuery.equalTo('name', roleTemplate).find()
+			if (grantRoleTemplateResult.length) {
+				return [grantRoleTemplateResult]
+			}
+			const roleACL = new Parse.ACL()
+			roleACL.setRoleReadAccess(grantRole, true)
+			roleACL.setRoleWriteAccess(grantRole, true)
+			const roleTem = new Parse.Role(roleTemplate, roleACL)
+			await	roleTem.save()
+			const [objectRole] = await roleQuery.equalTo('name', roleTemplate).find()
+			return objectRole
+		}
+		return undefined
 	}
 
 	// 把实体添加到当前实体组的fieldName数组字段里，并设置好权限规则
 	// fieldName：String，字段名
 	// entity：Parse.Object，实体
 	async addEntity(fieldName, entity) {
-		if (typeof entity !== 'object' || !fieldName) {
-			console.log('typeof error:entity need a object or fieldName Must be entered')
+		if (!(entity instanceof Parse.Object) || !fieldName) {
+			console.log('type error: entity must be  Parse.Object or fieldName does not exist')
 			return
 		}
+		const relation = this.relation(fieldName)
+		relation.add(entity)
+		await this.save()
+		await this.getRoleName(this.className, 'grant', entity.className)
 
-		try {
-			const query_data = new Parse.Query(this.name)
-			const query_data_list = await query_data.find({ useMasterKey: true })
-			const relation = query_data_list[0].relation(fieldName)
-			relation.add(entity)
-			query_data_list[0].save()
-		} catch (error) {
-			console.log('addEntity error: ', error)
+		const readRole = await this.getRoleName(this.className, 'read', entity.className)
+		const writeRole = await this.getRoleName(this.className, 'write', entity.className)
+
+		const roleACL = new Parse.ACL()
+		roleACL.setRoleWriteAccess(readRole, true)
+		roleACL.setRoleReadAccess(writeRole, true)
+		entity.setACL(roleACL)
+		await entity.save()
+	}
+
+	// 把实体从当前实体组的fieldName数组字段里删除
+	// fieldName：String，字段名
+	// entity：Parse.Object，实体
+	async removeEntity(fieldName, entity) {
+		if (!(entity instanceof Parse.Object) || !fieldName || !(typeof fieldName !== 'string')) {
+			console.log('type error: entity Must be  Parse.Object or fieldName does not exist or fieldName does not String')
+			return
 		}
+		const relation = this.relation(fieldName)
+		relation.remove(entity)
+		await this.save()
 	}
 
 	// 把实体组添加到当前实体组fieldName数组字段里，并设置好权限规则
 	// fieldName：String，字段名
 	// entityGroup：EntityGroup，实体组
 	async addEntityGroup(fieldName, entityGroup) {
-		if (typeof entityGroup !== 'object' || !fieldName || !entityGroup.length) {
-			console.log('typeof error:entity need a ( object or array) or fieldName Must be entered')
+		if (!(entityGroup instanceof EntityGroup) || !fieldName || !(typeof fieldName !== 'string')) {
+			console.log('type error: entity Must be  Parse.Object or fieldName does not exist or fieldName does not String')
 			return
 		}
-		const query_data = new Parse.Query(this.name)
-		const query_data_list = await query_data.find({ useMasterKey: true })
-		if (!query_data_list.length) {
-			console.log(`${this.name} The length of the list cannot be zero`)
-			return
-		}
+		const relation = this.relation(fieldName)
+		relation.add(entityGroup)
+		await this.save()
+		await this.getRoleName(this.className, 'grant', entityGroup.className)
 
-		const relation = query_data_list[0].relation(fieldName)
-		relation.add(entity)
-		query_data_list[0].save()
+		const currentUser = Parse.User.current()
+		await this.getRoleName(this.className, 'grant', entityGroup.className)
+		const readRole = await this.getRoleName(this.className, 'read', entityGroup.className)
+		const writeRole = await this.getRoleName(this.className, 'write', entityGroup.className)
+		readRole.getUsers().add(currentUser)
+		writeRole.getUsers().add(currentUser)
+		await readRole.save()
+		await writeRole.save()
+
+		const roleACLProject = new Parse.ACL()
+		const secondReadRole = await this.getRoleName(this.className, 'read', entityGroup.className)
+		const secondWriteRole = await this.getRoleName(this.className, 'write', entityGroup.className)
+		roleACLProject.setRoleReadAccess(secondReadRole, true)
+		roleACLProject.setRoleWriteAccess(secondWriteRole, true)
+		entityGroup.setACL(roleACLProject)
+		await entityGroup.save()
+	}
+
+	// 把实体组从当前实体组fieldName数组字段里删除，并设置好权限规则
+	// 实体组下的资源也会被删除
+	// fieldName：String，字段名
+	// entityGroup：EntityGroup，实体组
+	async removeEntityGroup(fieldName, entityGroup) {
+		if (!(entityGroup instanceof EntityGroup) || !fieldName || !(typeof fieldName !== 'string')) {
+			console.log('type error: entity Must be  Parse.Object or fieldName does not exist or fieldName does not String')
+			return
+		}
+		const entityGroupDetail = entityGroup.attributes
+		if (entityGroupDetail.fieldName instanceof Parse.Relation) {
+			const relation = entityGroup.relation(fieldName)
+			const realtionResult = await relation.query().find()
+			for (let index = 0; index < realtionResult.length; index += 1) {
+				await this.recursion(realtionResult[index])
+			}
+			await entityGroup.destroy()
+			const thisRelation = this.relation(fieldName)
+			thisRelation.remove(entityGroup)
+			await this.save()
+		} else {
+			console.log('this entityGroup fieldName not Parse.Relation')
+		}
 	}
 
 	// 向实体组添加成员，创建对应的角色权限，并添加此成员到角色里
 	// user: Parse.User，要添加的用户
 	// permissions：Array<String>，该用户在当前实体拥有的权限
-	async addMembers(user, permissions = ['read', 'write']) {
-		const query_data = new Parse.Query(this.name)
-		const organization_result = await query_data.find({ useMasterKey: true })
-		const relation = organization_result[0].relation('numbers')
+	// withGrant: 是否分配权限控制权限，子实体组此参数不能为true
+	async addMembers(user, withGrant = EntityGroup.withGrant) {
+		if (!(user instanceof Parse.Object)) {
+			console.log('user must be  Parse.Object')
+			return
+		}
+		const relation = this.relation('members')
 		relation.add(user)
-		organization_result[0].save()
+		await this.save()
 
-		const obj_role_data = new Parse.Query(Parse.Role)
-		obj_role_data.startsWith('name', this.name)
-		obj_role_data.endsWith('name', this.name)
-		const rol_result = await obj_role_data.find({ useMasterKey: true })
-		const roleACL = new Parse.ACL()
-		if (!rol_result.length) {
-			const Role_A = new Parse.Role(`Organization-${organization_result[0].id}-read-user`, roleACL)
-			const Role_B = new Parse.Role(`Organization-${organization_result[0].id}-write-user`, roleACL)
-			roleACL.setPublicWriteAccess(true)
-			Role_A.getUsers().add(user)
-			Role_B.getUsers().add(user)
-			await Role_A.save()
-			await Role_B.save()
-		} else {
-			for (let index = 0; index < rol_result.length; index++) {
-				rol_result[i].getUsers().add(user)
-				rol_result[i].save()
-			}
+		if (withGrant) {
+			const grantResult = await this.getRoleName(this.className, 'grant', null)
+			const withGrantRoleACL = new Parse.ACL()
+			withGrantRoleACL.setRoleReadAccess(grantResult, true)
+			withGrantRoleACL.setRoleWriteAccess(grantResult, true)
+			this.setACL(withGrantRoleACL)
+			await this.save()
 		}
 	}
 
@@ -82,87 +184,69 @@ class EntityGroup extends Parse.Object {
 	// user: Parse.User，要删除的用户
 	// permissions：Array<String>，该用户在当前实体拥有的权限
 	async delMembers(user) {
-		const query_data = new Parse.Query(this.name)
-		const organization_result = await query_data.find({ useMasterKey: true })
-		organization_result[0].remove(user)
+		if (!(user instanceof Parse.Object)) {
+			console.log('user must be  Parse.Object')
+			return
+		}
+		const relation = this.relation('members')
+		relation.remove(user)
+		await this.save()
 
-		const organization_result_acl = organization_result[0].getACL()
-		organization_result_acl.setReadAccess(user, false)
-		organization_result_acl.setWriteAccess(user, false)
-		organization_result[0].setACL(organization_result_acl)
-		organization_result[0].save()
+		const userRoleQuery = new Parse.Query(Parse.Role)
+		userRoleQuery.containedIn('name', [`${this.className}__${this.id}__write__${this.className}`, `${this.className}__${this.id}__read__${this.className}`,
+			`${this.className}__${this.id}__grant`,
+		])
+		const userRoleList = await userRoleQuery.find()
 
-		const role_query = new Parse.Query(Parse.Role)
-		role_query.startsWith('name', 'Organization')
-		role_query.endsWith('name', 'Organization')
-		const role_list = await role_query.find({ useMasterKey: true })
-		for (let index = 0; index < role_list.length; index++) {
-			const role_acl = role_list[index].getACL()
-			role_acl.setReadAccess(user, false)
-			role_acl.setWriteAccess(user, false)
-			role_list[index].setACL(organization_result_acl)
-			role_list[index].save()
+		for (let index = 0; index < userRoleList.length; index += 1) {
+			const roleRelation = userRoleList[index].relation('users')
+			roleRelation.remove(user)
+			const roleAcl = userRoleList[index].getACL()
+			roleAcl.setReadAccess(user, false)
+			roleAcl.setWriteAccess(user, false)
+			userRoleList[index].setACL(roleAcl)
+			await userRoleList[index].save()
 		}
 	}
 
 	// 改变某实体组成员的权限
 	// user: Parse.User，要改变的用户
 	// permissions：Array<String>，该用户在当前实体拥有的权限
-	async setMemberPermission(user, permissions = ['read', 'write']) {
-		const role_query = new Parse.Query(Parse.Role)
-		role_query.startsWith('name', this.name)
-		role_query.endsWith('name', this.name)
-		const role_list = await role_query.find({ useMasterKey: true })
-		for (let index = 0; index < role_list.length; index++) {
-			const role_acl = role_list[index].getACL()
-			role_acl.setReadAccess(user, false)
-			role_acl.setWriteAccess(user, false)
-			role_list[index].setACL(organization_result_acl)
-			role_list[index].save()
+	// withGrant: 是否分配权限控制权限，子实体组此参数不能为true
+	async setMemberPermission(user, permissions = EntityGroup.Permissions,
+		withGrant = EntityGroup.withGrant) {
+		if (!(user instanceof Parse.Object)) {
+			console.log('user must be  Parse.Object')
+			return
+		}
+
+		const roleObj = new Parse.Query(Parse.Role)
+		for (let index = 0; index < permissions.length; index += 1) {
+			if (permissions[index] === 'read') {
+				roleObj.containedIn('name', [`${this.className}__${this.id}__read__${this.className}`])
+				const [result] = await roleObj.find()
+				result.getUsers().add(user)
+				await	result.save()
+			}
+
+			if (permissions[index] === 'writer') {
+				roleObj.containedIn('name', [`${this.className}__${this.id}__writer__${this.className}`])
+				const [result] = await roleObj.find()
+				result.getUsers().add(user)
+				await	result.save()
+			}
+		}
+
+		if (withGrant) {
+			roleObj.containedIn('name', [`${this.Organization}__${this.id}__grant`])
+			const [result] = await roleObj.find()
+			result.getUsers().add(user)
+			await result.save()
 		}
 	}
-
-	// 授予用户改变角色权限的权限
-	// 设置当前实体组相关角色权限记录的ACL，使指定用户能更改该记录
-	// user: Parse.User，要授予的用户
-	async grantMemberChomdPermission(user) {
-		const query_data = new Parse.Query(Parse.Role)
-		query_data.startsWith('name', this.name)
-		const role_list = await query_data.find({ useMasterKey: true })
-		for (let index = 0; index < role_list.length; index++) {
-			const acl = new Parse.ACL()
-			acl.setReadAccess(user, true)
-			acl.setWriteAccess(user, true)
-			role_list[index].setACL(acl)
-			role_list[index].save()
-		}
-	}
 }
-
-// 组织实体组
-class Organization extends EntityGroup {
-	addProject(project) {
-		return super.addEntityGroup('projects', project)
-	}
-}
-Parse.Object.registerSubclass('Organization', Organization)
-
-// 项目实体组
-class Project extends EntityGroup {
-	addDevice(device) {
-		return super.addEntity('devices', device)
-	}
-}
-Parse.Object.registerSubclass('Project', Project)
-
-
-
-
-
 
 module.exports = {
 	// 用户要创建自己的业务实体组，可以通过继承这个类
 	EntityGroup,
-	Organization,
-	Project,
 }
