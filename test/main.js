@@ -4,7 +4,8 @@ const { Parse } = require('./parse')
 
 class organization extends entity.EntityGroup {
 	constructor() {
-		return 	super('organization')
+		// return super('organization')
+		return super('Organization')
 	}
 
 	addEntity(entity) {
@@ -27,6 +28,13 @@ class organization extends entity.EntityGroup {
 		return super.delMembers(user)
 	}
 
+	saves() {
+		console.log(':::::::::::::::', this);
+
+		this.save
+
+	}
+
 	// 	removeEntityGroup(entityGroup) {
 	// 		return super.removeEntityGroup('projects', entityGroup)
 	// 	}
@@ -39,21 +47,19 @@ class organization extends entity.EntityGroup {
 	// 	}
 
 }
-Parse.Object.registerSubclass('organization',organization)
+Parse.Object.registerSubclass('organization', organization)
 
 async function test() {
-	// const org = new organization()
+	// const [organization_one] = await new Parse.Query(organization).find()
+	// console.log(organization_one)
+	// organization_one.addEntity({})
 
-	const [organization_one] = await new Parse.Query(organization).find()
-	console.log(organization_one)
-	organization_one.addEntity({})
+	const org = new organization()
 
-	// const [device] = await new Parse.Query('project').find()
-	// console.log(device)
-
-	// org.addEntity('project',)
-	// org.set('name','qeqweqwew')
-	// await org.save()
+	org.saves()
+	console.log('--------------------', org);
+	org.set('Organization_name', 'qeqweqwew')
+	await org.save()
 }
 test()
 // 1、

@@ -13,16 +13,73 @@ class EntityGroup extends Parse.Object {
 		super(...args)
 	}
 
-	async  ensureRole(Permission,class_name) {
-		const tamplate = `Organization__${this.id}__${Permission}`
+	async getRoleName(entity_group_name, permission, class_name) {
+		const role_query = new Parse.Query(Parse.Role)
+		const grant_role = `Organization__${this.id}__grant`
+		if (entity_group_name === 'Organization') {
+			const grant_role_result = await role_query.equalTo('name', grant_role).find()
+			if (!grant_role_result.length) {
+				const roleACL = new Parse.ACL()
+				roleACL.setPublicWriteAccess(true)
+				const role = new Parse.Role(grant_role, roleACL)
+				await role.save()
+
+				const [grant_role_data] = await role_query.equalTo('name', grant_role).find()
+				const grant_role = grant_role_data.getACL()
+				grant_role.setRoleReadAccess(grant_role_data, true)
+				grant_role.setRoleWriteAccess(grant_role_data, true)
+				grant_role_data.setACL(grant_role)
+				await grant_role_data.save()
+			}
+		}
+		const role_template = `${entity_group_name}__${this.id}__${permission}__${class_name}`
+		const grant_role_result = await role_query.equalTo('name', role_template).find()
+		if (grant_role_result.length) {
+			return [grant_role_result]
+		} else {
+			const grant_role_result = await role_query.equalTo('name', role_template).find()
+			// 查询出来，然后set进去
+			const roleacl_template = new Parse.ACL()
+			roleacl_template.setRoleReadAccess(true)
+			roleacl_template.setRoleWriteAccess(true)
+
+			const role = new Parse.Role(grant_role, roleACL)
+			await role.save()
+		}
 
 
-		
+
 	}
 
-	async  getRoleName() {
-		
+
+	async ensureRole(entity_group_name, permission, class_name) {
+		const Permissions_list = EntityGroup.Permissions
+		if (Permissions_list.indexOf(Permission)) {
+			const role = `${entity_group_name}__${this.id}__${permission}__${class_name}`
+			const role_query = new Parse.Query(Parse.Role)
+			const role_result = await role_query.equalTo('name', role).find()
+
+			if (!role_result.length) {
+				const result = await getRoleName(entity_group_name, permission, class_name)
+
+
+
+
+			} else {
+				return role_result
+			}
+
+		} else {
+
+		}
+
+		const grant_role = `Organization__${this.id}__grant`
+
+
+
 	}
+
+
 
 
 
@@ -91,20 +148,20 @@ class EntityGroup extends Parse.Object {
 			role_B.getUsers().add(current_user)
 			await role_A.save()
 			await role_B.save()
-	
+
 			const roleACL_Project = new Parse.ACL()
 			roleACL_Project.setRoleReadAccess(`Organization__${org_id}__read__Project`, true)
 			roleACL_Project.setRoleWriteAccess(`Organization__${org_id}__write__Project`, true)
 			entityGroup.setACL(roleACL_Project)
 			await entityGroup.save()
-	
+
 			const relation = this.organization.relation(fieldName)
 			relation.add(entityGroup)
 			await this.organization.save()
-	
+
 		} catch (error) {
 			const role = new Parse.Query(Parse.Role)
-			role.containedIn('name',[`Organization__${org_id}__read__Project`,`Organization__${org_id}__write__Project`])
+			role.containedIn('name', [`Organization__${org_id}__read__Project`, `Organization__${org_id}__write__Project`])
 			const role_list = role.find()
 			for (let index = 0; index < role_list.length; index++) {
 				await array[index].destroy()
@@ -122,7 +179,7 @@ class EntityGroup extends Parse.Object {
 		for (let index = 0; index < key_list.length; index++) {
 			if (entityGroup_detail[key_list[index]] instanceof Parse.Relation) {
 				const relation = entityGroup.relation(key_list[index])
-				const  realtion_result =await relation.query().find()
+				const realtion_result = await relation.query().find()
 				for (let index = 0; index < realtion_result.length; index++) {
 					relation.remove(realtion_result[index])
 					await entityGroup.save()
@@ -192,11 +249,11 @@ class EntityGroup extends Parse.Object {
 		const user_role_query = new Parse.Query(Parse.Role)
 		user_role_query.containedIn('name', [`Organization__${org_id}__write__user`, `Organization__${org_id}__read__user`])
 		const user_role_list = await user_role_query.find()
-		console.log('LLLLLLLLLLLL',user_role_list)
+		console.log('LLLLLLLLLLLL', user_role_list)
 
 		for (let index = 0; index < user_role_list.length; index++) {
 			const role_relation = user_role_list[index].relation('users')
-			role_relation.remove(user)			
+			role_relation.remove(user)
 			const role_acl = user_role_list[index].getACL()
 			role_acl.setReadAccess(user, false)
 			role_acl.setWriteAccess(user, false)
@@ -215,15 +272,15 @@ class EntityGroup extends Parse.Object {
 		const role_obj = new Parse.Query(Parse.Role)
 
 		for (let index = 0; index < permissions.length; index++) {
-			if (permissions[index]==='read') {
-				role_obj.containedIn('name',[`Organization.${org_id}.read.Organization`])
+			if (permissions[index] === 'read') {
+				role_obj.containedIn('name', [`Organization.${org_id}.read.Organization`])
 				const [result] = await role_obj.find()
 				result.getUsers().add(user)
 				result.save()
 			}
-			
-			if (permissions[index]==='writer') {
-				role_obj.containedIn('name',[`Organization.${org_id}.writer.Organization`])
+
+			if (permissions[index] === 'writer') {
+				role_obj.containedIn('name', [`Organization.${org_id}.writer.Organization`])
 				const [result] = await role_obj.find()
 				result.getUsers().add(user)
 				result.save()
@@ -231,7 +288,7 @@ class EntityGroup extends Parse.Object {
 		}
 
 		if (withGrant) {
-			role_obj.containedIn('name',[`Organization.${org_id}.grant`])
+			role_obj.containedIn('name', [`Organization.${org_id}.grant`])
 			const [result] = await role_obj.find()
 			result.getUsers().add(user)
 			result.save()
