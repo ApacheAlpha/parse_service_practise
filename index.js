@@ -37,7 +37,7 @@ class organization extends entity.EntityGroup {
 // 		  return super.addEntity('devices', device)
 // 	}
 // }
-// Parse.Object.registerSubclass('organization', organization)
+Parse.Object.registerSubclass('organization', organization)
 
 // class Project extends entity.EntityGroup {
 // 	addDevice(device) {
@@ -126,23 +126,16 @@ class organization extends entity.EntityGroup {
 // main()
 // test_one()
 // 1、
-// async function test_AddEntity() {
-// 	const org = new organization()
-// 	console.log('::::::::::::::', org)
+async function test_AddEntity() {
+	const invObj = new Parse.Object('inventory')
+	invObj.set('sn', '测试000')
+	await invObj.save()
 
-// 	// const invObj = new Parse.Object('inventory')
-// 	// invObj.set('sn', '测试000')
-// 	// await invObj.save()
-// 	// org.addEntity(invObj)
-
-// 	const Role = new Parse.Role()
-// 	const user = new Parse.User()
-// 	console.log('::::::::::::', Role, user)
-// const [organizationList] = await organizationQuery.find()
-
-// console.log('[[[[[[[[[[[[[[[[[[[[[', organizationList)
-// }
-// test_AddEntity()
+	const organization_query = new Parse.Query(organization)
+	const [organization_list] = await organization_query.find()
+	organization_list.addEntity(invObj)
+}
+test_AddEntity()
 // 2、
 // async function testAddEntityGroup() {
 // 	const pro = new Project()
@@ -152,52 +145,13 @@ class organization extends entity.EntityGroup {
 // 	pro.addProject(pro)
 // }
 // testAddEntityGroup()
-let mark = 0
-async function recursivelyDelete(realtionResult) {
-	console.log('+++++++++++0+++++++++', realtionResult)
-	const relationObj = realtionResult.attributes
-	const keyList = Object.keys(relationObj)
-	console.log('---------------3', keyList)
-	console.log('---------------3', keyList.length)
-	for (let i = 0; i < keyList.length; i += 1) {
-		if (relationObj[keyList[i]] instanceof Parse.Relation) {
-			const newRelation = realtionResult.relation(keyList[i])
-			const newRealtionResult = await newRelation.query().find({ useMasterKey: true })
-			console.log('LLLLLLLL2LLLLLLLLL', newRealtionResult)
-			for (let j = 0; j < newRealtionResult.length; j += 1) {
-				console.log('LLLLLLL3LLLLLLLLL', newRealtionResult[j])
-				console.log('LLLLLLL4LLLLLLLLLL', realtionResult)
-				// await realtionResult.destroy()
-				console.log(')))))))5454564546465456)))))))')
-				mark = 0
-				await recursivelyDelete(newRealtionResult[j])
-			}
-		} else {
-			mark += 1
-			console.log('----------------------------------------------------', mark)
-			if (keyList.length === mark) {
-				console.log(')))))++++++++++++++++++++++++++++)))))')
-				// await realtionResult.destroy()
-				// mark = 0
-			}
-		}
-	}
-}
 
 // 3、
-async function removeEntityGroup() {
-	// const org = new organization()
-	const organization_query = new Parse.Query('Project')
-	const [organization_list] = await organization_query.find({ useMasterKey: true })
-	await recursivelyDelete(organization_list)
-	console.log('----------------------', organization_list)
+// async function removeEntityGroup() {
+// 	const org = new organization()
 
-	// const organization_query = new Parse.Query('inventory')
-	// const [organization_list] = await organization_query.find({ useMasterKey: true })
-	// await recursivelyDelete(organization_list)
-	// console.log('----------------------', organization_list)
-}
-removeEntityGroup()
+// }
+// removeEntityGroup()
 
 // 4、
 // async function addMembers() {

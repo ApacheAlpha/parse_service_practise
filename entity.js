@@ -3,18 +3,24 @@
 /* eslint-disable max-classes-per-file */
 const { Parse } = require('./parse')
 
+let mark = 0
 async function recursivelyDelete(realtionResult) {
 	const relationObj = realtionResult.attributes
 	const keyList = Object.keys(relationObj)
 	for (let i = 0; i < keyList.length; i += 1) {
 		if (relationObj[keyList[i]] instanceof Parse.Relation) {
 			const newRelation = realtionResult.relation(keyList[i])
-			const newRealtionResult = await newRelation.query().find()
+			const newRealtionResult = await newRelation.query().find({ useMasterKey: true })
 			for (let j = 0; j < newRealtionResult.length; j += 1) {
-				if (relationObj[keyList[j]] instanceof Parse.Relation) {
-					await recursivelyDelete(newRealtionResult[j])
-					await realtionResult.destroy()
-				}
+				mark = 0
+				await recursivelyDelete(newRealtionResult[j])
+			}
+			await realtionResult.destroy()
+		} else {
+			mark += 1
+			if (keyList.length === mark) {
+				await realtionResult.destroy()
+				mark = 0
 			}
 		}
 	}
@@ -30,39 +36,14 @@ class EntityGroup extends Parse.Object {
 		return false
 	}
 
-	async recursivelyDelete() {
-		console.log('+++++++___________+++++++++++', this)
-		const relationObj = this.attributes
-		const keyList = Object.keys(relationObj)
-		for (let index = 0; index < keyList.length; index += 1) {
-			if (relationObj[keyList[index]] instanceof Parse.Relation) {
-				const newRelation = this.relation(keyList[index])
-				const newRealtionResult = await newRelation.query().find()
-				for (let j = 0; j < newRealtionResult.length; j += 1) {
-					await newRealtionResult[j].recursivelyDelete()
-					await newRealtionResult[j].destroy()
-
-					// EntityGroup.registerSubclass.call(newRealtionResult[start])
-					// console.log('+++++++_____3234234234______+++++++++++', this)
-					// this.recursivelyDelete.bind(newRealtionResult[start])()
-					// this.recursivelyDelete.call(newRealtionResult[start])
-					// await this.recursivelyDelete()
-					// await this.destroy()
-				}
-			}
-		}
-	}
-
-	async ensurePermissionGrant(permission, grantRoleResult, newGrantRole) {
+	async ensurePermissionGrant(permission, newGrantRole) {
 		if (permission === 'grant') {
-			if (!grantRoleResult.length) {
-				const roleACL = new Parse.ACL()
-				roleACL.setRoleReadAccess(newGrantRole, true)
-				roleACL.setRoleWriteAccess(newGrantRole, true)
-				const role = new Parse.Role(newGrantRole, roleACL)
-				await role.save()
-				return newGrantRole
-			}
+			const roleACL = new Parse.ACL()
+			roleACL.setRoleReadAccess(newGrantRole, true)
+			roleACL.setRoleWriteAccess(newGrantRole, true)
+			const role = new Parse.Role(newGrantRole, roleACL)
+			await role.save()
+			return newGrantRole
 		}
 		return null
 	}
@@ -70,22 +51,26 @@ class EntityGroup extends Parse.Object {
 	async ensureRole(permission, className) {
 		const roleQuery = new Parse.Query(Parse.Role)
 		const grantRole = `${this.className}__${this.id}__${permission}`
-		const grantRoleResult = await roleQuery.equalTo('name', grantRole).find()
-		if (!grantRoleResult.length) {
-			await EntityGroup.ensurePermissionGrant(permission, grantRoleResult, grantRole)
+		const [grantRoleResult] = await roleQuery.equalTo('name', grantRole).find()
+		if (!grantRoleResult) {
+			const result = await this.ensurePermissionGrant(permission, grantRole)
+			if (!result) {
+				const roleTemplate = `${this.className}__${this.id}__${permission}__${className}`
+				const [grantRoleTemplateResult] = await roleQuery.equalTo('name', roleTemplate).find()
+				if (grantRoleTemplateResult) {
+					return grantRoleTemplateResult
+				}
+				const roleACL = new Parse.ACL()
+				roleACL.setRoleReadAccess(`${this.className}__${this.id}__grant`, true)
+				roleACL.setRoleWriteAccess(`${this.className}__${this.id}__grant`, true)
+				const roleTem = new Parse.Role(roleTemplate, roleACL)
+				await roleTem.save()
+				const [objectRole] = await roleQuery.equalTo('name', roleTemplate).find()
+				return objectRole
+			}
+			return result
 		}
-		const roleTemplate = `${this.className}__${this.id}__${permission}__${className}`
-		const grantRoleTemplateResult = await roleQuery.equalTo('name', roleTemplate).find()
-		if (grantRoleTemplateResult.length) {
-			return grantRoleTemplateResult[0]
-		}
-		const roleACL = new Parse.ACL()
-		roleACL.setRoleReadAccess(grantRole, true)
-		roleACL.setRoleWriteAccess(grantRole, true)
-		const roleTem = new Parse.Role(roleTemplate, roleACL)
-		await roleTem.save()
-		const [objectRole] = await roleQuery.equalTo('name', roleTemplate).find()
-		return objectRole
+		return grantRoleResult
 	}
 
 	// 把实体添加到当前实体组的fieldName数组字段里，并设置好权限规则
@@ -184,8 +169,7 @@ class EntityGroup extends Parse.Object {
 		if (typeof fieldName !== 'string') {
 			throw new Error('fieldName typeof does not String')
 		}
-
-		await entityGroup.recursivelyDelete()
+		await recursivelyDelete()
 	}
 
 	// 向实体组添加成员，创建对应的角色权限，并添加此成员到角色里
@@ -222,9 +206,8 @@ class EntityGroup extends Parse.Object {
 		await this.save()
 
 		const userRoleQuery = new Parse.Query(Parse.Role)
-		userRoleQuery.containedIn('name', [`${this.className}__${this.id}__write__${this.className}`, `${this.className}__${this.id}__read__${this.className}`,
-			`${this.className}__${this.id}__grant`,
-		])
+		userRoleQuery.containedIn('name', [`${this.className}__${this.id}__write__${this.className}`,
+		`${this.className}__${this.id}__read__${this.className}`, `${this.className}__${this.id}__grant`])
 		const userRoleList = await userRoleQuery.find()
 
 		for (let index = 0; index < userRoleList.length; index += 1) {
