@@ -26,6 +26,13 @@ async function recursivelyDelete(realtionResult) {
 	}
 }
 
+async function createNewRoleName(className, id, permission) {
+	if (permission === 'grant') {
+		return `${className}__${id}__grant`
+	}
+	return `${className}__${id}__${permission}__${className}`
+}
+
 // 实体组抽象类
 class EntityGroup extends Parse.Object {
 	static get Permissions() {
@@ -34,7 +41,7 @@ class EntityGroup extends Parse.Object {
 
 	async ensurePermissionGrant(roleName) {
 		const roleQuery = new Parse.Query(Parse.Role)
-		const grantRole = `${this.className}__${this.id}__grant`
+		const grantRole = await createNewRoleName(this.className, this.id, 'grant')
 		const [grantRoleResult] = await roleQuery.equalTo('name', grantRole).limit(1).find()
 		if (!grantRoleResult) {
 			const roleACL = new Parse.ACL()
@@ -62,9 +69,9 @@ class EntityGroup extends Parse.Object {
 		const roleQuery = new Parse.Query(Parse.Role)
 		let roleName
 		if (permission === 'grant') {
-			roleName = `${className}__${this.id}__${permission}`
+			roleName = await createNewRoleName(className, this.id, permission)
 		} else {
-			roleName = `${className}__${this.id}__${permission}__${className}`
+			roleName = await createNewRoleName(className, this.id, permission)
 		}
 		await this.ensurePermissionGrant(roleName)
 		const [objectRole] = await roleQuery.equalTo('name', roleName).limit(1).find()
@@ -192,7 +199,7 @@ class EntityGroup extends Parse.Object {
 		await this.save()
 
 		const userRoleQuery = new Parse.Query(Parse.Role)
-		const grantRole = `${this.className}__${this.id}__grant`
+		const grantRole = await createNewRoleName(this.className, this.id, 'grant')
 		const roleArray = EntityGroup.Permission.map((v) => `${this.className}__${this.id}__${v}__${this.className}`)
 		roleArray.push(grantRole)
 		userRoleQuery.containedIn('name', roleArray)
