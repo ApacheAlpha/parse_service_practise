@@ -14,5 +14,8 @@
         "eslint-config-airbnb-base": "^14.2.1",
         "eslint-plugin-import": "^2.22.1",
         "parse": "^3.3.1"
+    },
+    "dependencies": {
+        "editor.md": "^1.5.0"
     }
 }
