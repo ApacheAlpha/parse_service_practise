@@ -208,7 +208,7 @@ class EntityGroup extends Parse.Object {
 		}
 	}
 
-	// 删除实体组成员，并在对应的角色权限中删除此成员 B5EAD0016A
+	// 删除实体组成员，并在对应的角色权限中删除此成员
 	// user: Parse.User，要删除的用户
 	// permissions：Array<String>，该用户在当前实体拥有的权限
 	async delMembers(user) {
