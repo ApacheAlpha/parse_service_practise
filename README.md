@@ -1,8 +1,6 @@
 # parse_service_practise.md
 
-[TOC]
-
-## 该parse service SDK本人练习随手所写，请勿直接带入生产或者测试环境一共包含一个实体组抽象类EntityGroup和多个类方法，详细代码在名称为entity的js文件中
+## 该parse service SDK本人练习随手所写，请勿直接带入生产或测试环境一共包含一个实体组抽象类EntityGroup和多个类方法，详细代码在名称为entity的js文件中
 &nbsp;
 ### 实体组和实体的关系图
 &nbsp;
