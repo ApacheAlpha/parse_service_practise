@@ -10,7 +10,7 @@ async function recursivelyDelete(realtionResult) {
 	for (let i = 0; i < keyList.length; i += 1) {
 		if (relationObj[keyList[i]] instanceof Parse.Relation) {
 			const newRelation = realtionResult.relation(keyList[i])
-			const newRealtionResult = await newRelation.query().find({ useMasterKey: true })
+			const newRealtionResult = await newRelation.query().find()
 			for (let j = 0; j < newRealtionResult.length; j += 1) {
 				mark = 0
 				await recursivelyDelete(newRealtionResult[j])
@@ -26,6 +26,7 @@ async function recursivelyDelete(realtionResult) {
 	}
 }
 
+// 创建角色名称的规则 实体组名称__实体组id__权限名称__实体名
 function createNewRoleName(entityGroupClassName, entityGroupId, permission, entityClassName) {
 	if (entityClassName) {
 		return [entityGroupClassName, entityGroupId, permission, entityClassName].join('__')
@@ -39,23 +40,19 @@ class EntityGroup extends Parse.Object {
 		return ['read', 'write']
 	}
 
-	// eslint-disable-next-line no-useless-constructor
-	constructor(...args) {
-		console.log('-->>>>>>>>>>>>>>>', args)
-		super(...args)
-	}
-
 	async ensurePermissionGrant() {
-		// ensurePermissionGrant 只用来验证grant权限是否存在，不存在则自动创建
+		// ensurePermissionGrant 只用来验证grant权限是否存在，不存在则自动创建,创建的时候把当前用户添加到该角色
 		const roleQuery = new Parse.Query(Parse.Role)
 		const grantRole = createNewRoleName(this.className, this.id, 'grant')
-		const [grantRoleResult] = await roleQuery.equalTo('name', grantRole).limit(1).find({ useMasterKey: true })
+		const [grantRoleResult] = await roleQuery.equalTo('name', grantRole).limit(1).find()
 
 		if (!grantRoleResult) {
+			const currentUser = Parse.User.current()
 			const roleACL = new Parse.ACL()
 			roleACL.setRoleReadAccess(grantRole, true)
 			roleACL.setRoleWriteAccess(grantRole, true)
 			const roleGrant = new Parse.Role(grantRole, roleACL)
+			roleGrant.getUsers().add(currentUser)
 			await roleGrant.save()
 			return roleGrant
 		}
@@ -63,7 +60,7 @@ class EntityGroup extends Parse.Object {
 	}
 
 	async ensureRole(permission, className) {
-		// 返回我们需要的权限名，不存在则创建后再返回
+		// 返回我们需要的权限对象，不存在则创建后再返回
 		const roleQuery = new Parse.Query(Parse.Role)
 		let roleName
 		if (permission === 'grant') {
@@ -73,19 +70,21 @@ class EntityGroup extends Parse.Object {
 		}
 		await this.ensurePermissionGrant()
 
-		const [objectRole] = await roleQuery.equalTo('name', roleName).limit(1).find({ useMasterKey: true })
+		const [Role] = await roleQuery.equalTo('name', roleName).limit(1).find()
+		const currentUser = Parse.User.current()
 
-		// // 当传入的permission 是read或者write是,该roleName不存在的时候就自动创建再返回该角色名
-		if (!objectRole) {
+		// // 当传入的permission 是read或者write是,该roleName不存在的时候就自动创建再返回该角色名,同时把当前用户的信息添加到该角色
+		if (!Role) {
 			const grantRoleName = createNewRoleName(this.className, this.id, 'grant')
 			const roleACL = new Parse.ACL()
 			roleACL.setRoleReadAccess(grantRoleName, true)
 			roleACL.setRoleWriteAccess(grantRoleName, true)
 			const role = new Parse.Role(roleName, roleACL)
+			role.getUsers().add(currentUser)
 			await role.save()
 			return role
 		}
-		return objectRole
+		return Role
 	}
 
 	// 把实体添加到当前实体组的fieldName数组字段里，并设置好权限规则
@@ -146,28 +145,21 @@ class EntityGroup extends Parse.Object {
 		await this.save()
 		await this.ensureRole('grant', this.className)
 
-		// const currentUser = Parse.User.current()
-
-		const userQuery = new Parse.Query(Parse.User)
-		const [result] = await userQuery.find()
-		const currentUser = result
+		const currentUser = Parse.User.current()
 
 		await this.ensureRole('grant', this.className)
 		const readRole = await this.ensureRole('read', entityGroup.className)
 		const writeRole = await this.ensureRole('write', entityGroup.className)
-		// 测试到这里，未完成  测试到这里，未完成 测试到这里，未完成
-		console.log('--------------readRole-------------------', readRole)
-		console.log('-------------currentUser--------------------', currentUser)
 		readRole.getUsers().add(currentUser)
-		// writeRole.getUsers().add(currentUser)
+		writeRole.getUsers().add(currentUser)
 		await readRole.save()
-		// await writeRole.save()
+		await writeRole.save()
 
-		// const roleACLProject = new Parse.ACL()
-		// roleACLProject.setRoleReadAccess(readRole, true)
-		// roleACLProject.setRoleWriteAccess(writeRole, true)
-		// entityGroup.setACL(roleACLProject)
-		// await entityGroup.save()
+		const roleACLProject = new Parse.ACL()
+		roleACLProject.setRoleReadAccess(readRole, true)
+		roleACLProject.setRoleWriteAccess(writeRole, true)
+		entityGroup.setACL(roleACLProject)
+		await entityGroup.save()
 	}
 
 	// 把实体组从当前实体组fieldName数组字段里删除，并设置好权限规则
@@ -197,12 +189,18 @@ class EntityGroup extends Parse.Object {
 		await this.save()
 
 		if (withGrant) {
-			const grantResult = await this.ensureRole('grant')
-			const withGrantRoleACL = new Parse.ACL()
-			withGrantRoleACL.setRoleReadAccess(grantResult, true)
-			withGrantRoleACL.setRoleWriteAccess(grantResult, true)
-			this.setACL(withGrantRoleACL)
-			await this.save()
+			const roleObj = new Parse.Query(Parse.Role)
+			const grantRoleName = createNewRoleName(this.className, this.id, 'grant')
+			const [withGrantResult] = await roleObj.containedIn('name', [grantRoleName]).find()
+			withGrantResult.getUsers().add(user)
+			await withGrantResult.save()
+			// 未完成，未完成
+			// const grantResult = await this.ensureRole('grant')
+			// const aclWithGrantRole = new Parse.ACL()
+			// aclWithGrantRole.setRoleReadAccess(grantResult, true)
+			// aclWithGrantRole.setRoleWriteAccess(grantResult, true)
+			// this.setACL(aclWithGrantRole)
+			// await this.save()
 		}
 	}
 
@@ -217,21 +215,24 @@ class EntityGroup extends Parse.Object {
 		relation.remove(user)
 		await this.save()
 
-		const userRoleQuery = new Parse.Query(Parse.Role)
 		const grantRole = createNewRoleName(this.className, this.id, 'grant')
-		const roleArray = EntityGroup.Permission.map((v) => `${this.className}__${this.id}__${v}__${this.className}`)
-		roleArray.push(grantRole)
-		userRoleQuery.containedIn('name', roleArray)
-		const userRoleList = await userRoleQuery.find()
+		const roleArray = EntityGroup.Permission.map((v) => {
+			const roleName = createNewRoleName(this.className, this.id, v, this.className)
+			return roleName
+		})
+		const userRoleList = new Parse.Query(Parse.Role).containedIn('name', [...roleArray, grantRole]).find()
 
 		for (let index = 0; index < userRoleList.length; index += 1) {
 			const roleRelation = userRoleList[index].relation('users')
 			roleRelation.remove(user)
 			const roleAcl = userRoleList[index].getACL()
-			roleAcl.setReadAccess(user, false)
-			roleAcl.setWriteAccess(user, false)
-			userRoleList[index].setACL(roleAcl)
-			await userRoleList[index].save()
+			// 拿到当前角色的ACl，然后判断该ALC中是否包含这个用户id
+			if (roleAcl.permissionsById[user.id]) {
+				roleAcl.setReadAccess(user, false)
+				roleAcl.setWriteAccess(user, false)
+				userRoleList[index].setACL(roleAcl)
+				await userRoleList[index].save()
+			}
 		}
 	}
 
@@ -245,17 +246,20 @@ class EntityGroup extends Parse.Object {
 		}
 
 		const roleObj = new Parse.Query(Parse.Role)
-		const roleList = permissions.map((v) => `${this.className}__${this.id}__${v}__${this.className}`)
-		roleObj.containedIn('name', roleList)
-		const result = await roleObj.find()
+		const roleList = permissions.map((v) => {
+			const roleName = createNewRoleName(this.className, this.id, v, this.className)
+			return roleName
+		})
+
+		const result = await roleObj.containedIn('name', roleList).find()
 		for (let index = 0; index < result.length; index += 1) {
 			result[index].getUsers().add(user)
 			await result[index].save()
 		}
 
 		if (withGrant) {
-			roleObj.containedIn('name', [`${this.Organization}__${this.id}__grant`])
-			const [withGrantResult] = await roleObj.find()
+			const grantRoleName = createNewRoleName(this.className, this.id, 'grant')
+			const [withGrantResult] = await roleObj.containedIn('name', [grantRoleName]).find()
 			withGrantResult.getUsers().add(user)
 			await withGrantResult.save()
 		}

@@ -23,7 +23,7 @@
 
 &nbsp;
 
-### 1、创建一个继承于EntityGroup的organization子类和Project子类
+### 1、创建继承于EntityGroup的organization、Project、inventory、device 子类并注册
 
 ```
 class organization extends entity.EntityGroup {
@@ -57,22 +57,59 @@ class organization extends entity.EntityGroup {
 }
 Parse.Object.registerSubclass('organization', organization)
 
-
 class Project extends entity.EntityGroup {
-	addDevice(device) {
-		return super.addEntity('devices', device)
-	}
-
-	addProject(project) {
-		return super.addEntityGroup('projects', project)
+	constructor() {
+		super('Project')
 	}
 }
 Parse.Object.registerSubclass('Project', Project)
+
+class Inventory extends entity.EntityGroup {
+		constructor() {
+		super('Inventory')
+	}
+}
+Parse.Object.registerSubclass('Inventory', Inventory)
+
+class Device extends entity.EntityGroup {
+			constructor() {
+		super('Device')
+	}
+}
+Parse.Object.registerSubclass('Device', Device)
 
 ```
 
 ### 2、在organization类基础上进行类方法测试，实例如下
 ```
+<!-- 首先分别创建organization、Inventory、Device、Project 四格表，并建立相关的relation关系
+,字段可以随意填写-->
+
+async function createTable() {
+	const device = new Device()
+	device.set('sn', 'BD897879T')
+	await device.save()
+
+	const project = new Project()
+	const devicesRelation = organization.relation('devices')
+	devicesRelation.add(device)
+	await project.save()
+
+	const inventory = new Inventory()
+	inventory.set('device_id', '87842342342hjh324jh23')
+	await inventory.save()
+
+	const organization = new organization()
+	const projectsRelation = organization.relation('projects')
+	projectsRelation.add(project)
+
+	const inventoryRelation = organization.relation('inventorys')
+	inventoryRelation.add(inventory)
+	await organization.save()
+}
+
+createTable()
+
 1、
 async function testAddEntity() {
 	<!-- 创建一个inventory实体对象并创建实体对象与实体组organization的relation关系到organization的inventory字段-->
@@ -88,16 +125,12 @@ async function testAddEntity() {
 
 2、
 async function testAddEntityGroup() {
-	<!-- 创建一个Project项目组的对象，再建立Project与organization的relation关系 -->
- 	const pro = new Project()
- 	pro.set('Project_name', '测试000')
- 	pro.set('Project_address', '测试000')
- 	await pro.save()
-
+	<!-- 获取一个Project项目组的对象，再建立Project与organization的relation关系 -->
+	const Project_query = new Parse.Query(Project)
+	const [result] = await Project_query.find()
 	const organization_query = new Parse.Query(organization)
 	const [organization_list] = await organization_query.find()
-	organization_list.addProject(invObj)
-
+	organization_list.addProject(result)
 }
 
 

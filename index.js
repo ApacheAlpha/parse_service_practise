@@ -8,7 +8,7 @@ class organization extends entity.EntityGroup {
 		return super('organization')
 	}
 
-	addEntity(entityData) {
+	addEntityTEST(entityData) {
 		return this.addEntity('inventory', entityData)
 	}
 
@@ -35,13 +35,9 @@ class organization extends entity.EntityGroup {
 Parse.Object.registerSubclass('organization', organization)
 
 class Project extends entity.EntityGroup {
-	// constructor() {
-	// 	// eslint-disable-next-line constructor-super
-	// 	return super('Project')
-	// }
-	constructor(...args) {
+	constructor() {
 		// eslint-disable-next-line constructor-super
-		return super(...args)
+		return super('Project')
 	}
 
 	addDevice(device) {
@@ -54,38 +50,40 @@ class Project extends entity.EntityGroup {
 }
 Parse.Object.registerSubclass('Project', Project)
 
+class Inventory extends entity.EntityGroup {
+	constructor() {
+		super('Inventory')
+	}
+}
+Parse.Object.registerSubclass('Inventory', Inventory)
+
+class Device extends entity.EntityGroup {
+	constructor() {
+		super('Device')
+	}
+}
+Parse.Object.registerSubclass('Device', Device)
+
 // 1、
 // async function test_AddEntity() {
-// 	//
 // 	const invObj = new Parse.Object('inventory')
 // 	invObj.set('sn', '测试000')
 // 	await invObj.save()
 
 // 	const organization_query = new Parse.Query(organization)
 // 	const [organization_list] = await organization_query.find()
-// 	organization_list.addEntity(invObj)
+// 	organization_list.addEntityTEST(invObj)
 // }
 // test_AddEntity()
 // 2、
-async function testAddEntityGroup() {
-	const Project_query = new Parse.Query(Project)
-	const [result] = await Project_query.find()
-
-	console.log(')))))))))))))))))', result instanceof Project)
-
-	const organization_query = new Parse.Query(organization)
-	const [organization_list] = await organization_query.find()
-	console.log(')))))))organization_list))))))))))', organization_list instanceof organization)
-
-	organization_list.addProject(result)
-
-	// const relation = organization_list.relation('project')
-	// relation.add(result)
-	// await organization_list.save()
-
-	// organization_list.addProject(Project_list)
-}
-testAddEntityGroup()
+// async function testAddEntityGroup() {
+// 	const ProjectQuery = new Parse.Query(Project)
+// 	const [result] = await ProjectQuery.find()
+// 	const organizationQuery = new Parse.Query(organization)
+// 	const [organizationList] = await organizationQuery.find()
+// 	organizationList.addProject(result)
+// }
+// testAddEntityGroup()
 
 // 3、
 // async function removeEntityGroup() {
@@ -97,12 +95,13 @@ testAddEntityGroup()
 // 4、
 // async function addMembers() {
 // 	const org = new organization()
-// 	const user_query = new Parse.Query(Parse.User)
-// 	const user_list = await user_query.find()
-// 	const organization_query = new Parse.Query('organization')
-// 	const [organization_list] = await organization_query.find()
-// 	org.organization = organization_list
-// 	org.addMembers(user_list[0])
+// 	const userQuery = new Parse.Query(Parse.User)
+// 	const [userList] = await userQuery.find()
+
+// 	const organizationQuery = new Parse.Query(organization)
+// 	const [organizationList] = await organizationQuery.find()
+// 	console.log('---------------->>>>>>', organizationList)
+// 	org.addMembers(userList)
 // }
 // addMembers()
 
@@ -120,3 +119,14 @@ testAddEntityGroup()
 // 	org.delMembers(user_list[0])
 // }
 // delMembers()
+
+async function main() {
+	const YYY = new Parse.Query('inventory')
+	const [result] = await YYY.find()
+	console.log('LLLLLLLLLLLLLLLLL', result)
+
+	const ACL = await result.getACL()
+	console.log('LLLLLLLLLACLLLLLLLLL', ACL)
+	console.log('LLLACLLLLLLLACLLACLLLLLLLL', ACL.permissionsById['1jcqMrs20D'])
+}
+main()
