@@ -41,7 +41,7 @@ class EntityGroup extends Parse.Object {
 	}
 
 	async ensurePermissionGrant() {
-		// ensurePermissionGrant 只用来验证grant权限是否存在，不存在则自动创建,创建的时候把当前用户添加到该角色
+		// ensurePermissionGrant 只用来验证grant权限是否存在，不存在则自动创建,创建的时候把当前用户添加到gramt角色
 		const roleQuery = new Parse.Query(Parse.Role)
 		const grantRole = createNewRoleName(this.className, this.id, 'grant')
 		const [grantRoleResult] = await roleQuery.equalTo('name', grantRole).limit(1).find()
@@ -51,6 +51,9 @@ class EntityGroup extends Parse.Object {
 			const roleACL = new Parse.ACL()
 			roleACL.setRoleReadAccess(grantRole, true)
 			roleACL.setRoleWriteAccess(grantRole, true)
+			// 创建grant规则的用户拥有可以读写grant角色的权限，同时把用户加到grant角色下
+			roleACL.setReadAccess(currentUser, true)
+			roleACL.setWriteAccess(currentUser, true)
 			const roleGrant = new Parse.Role(grantRole, roleACL)
 			roleGrant.getUsers().add(currentUser)
 			await roleGrant.save()
@@ -73,7 +76,8 @@ class EntityGroup extends Parse.Object {
 		const [Role] = await roleQuery.equalTo('name', roleName).limit(1).find()
 		const currentUser = Parse.User.current()
 
-		// // 当传入的permission 是read或者write是,该roleName不存在的时候就自动创建再返回该角色名,同时把当前用户的信息添加到该角色
+		// 当传入的permission 是read或者write时且roleName不存在的时候就自动创建再返回该角色名对象
+		// 同时把当前用户的信息添加到该角色
 		if (!Role) {
 			const grantRoleName = createNewRoleName(this.className, this.id, 'grant')
 			const roleACL = new Parse.ACL()
@@ -108,7 +112,9 @@ class EntityGroup extends Parse.Object {
 		const writeRole = await this.ensureRole('write', entity.className)
 
 		const roleACL = new Parse.ACL()
-		roleACL.setRoleWriteAccess(readRole, true)
+		roleACL.setRoleReadAccess(readRole, true)
+		roleACL.setRoleWriteAccess(writeRole, true)
+		// 可以写前提可以读，所以writeRole角色下加上setRoleReadAccess权限
 		roleACL.setRoleReadAccess(writeRole, true)
 		entity.setACL(roleACL)
 		await entity.save()
@@ -146,8 +152,6 @@ class EntityGroup extends Parse.Object {
 		await this.ensureRole('grant', this.className)
 
 		const currentUser = Parse.User.current()
-
-		await this.ensureRole('grant', this.className)
 		const readRole = await this.ensureRole('read', entityGroup.className)
 		const writeRole = await this.ensureRole('write', entityGroup.className)
 		readRole.getUsers().add(currentUser)
@@ -157,6 +161,8 @@ class EntityGroup extends Parse.Object {
 
 		const roleACLProject = new Parse.ACL()
 		roleACLProject.setRoleReadAccess(readRole, true)
+		// 可以写前提可以读，所以writeRole角色下加上setRoleReadAccess权限
+		roleACLProject.setRoleReadAccess(writeRole, true)
 		roleACLProject.setRoleWriteAccess(writeRole, true)
 		entityGroup.setACL(roleACLProject)
 		await entityGroup.save()
@@ -184,49 +190,49 @@ class EntityGroup extends Parse.Object {
 		if (!(user instanceof Parse.Object)) {
 			throw new Error('user must be Parse.Object type')
 		}
+		// 建立当前实体组和user的relation关系
 		const relation = this.relation('members')
 		relation.add(user)
 		await this.save()
 
 		if (withGrant) {
+			// 如果withGrant为true就把用户添加到grant角色下以及可以读写grant权限
 			const roleObj = new Parse.Query(Parse.Role)
 			const grantRoleName = createNewRoleName(this.className, this.id, 'grant')
-			const [withGrantResult] = await roleObj.containedIn('name', [grantRoleName]).find()
+			const [withGrantResult] = await roleObj.equalTo('name', grantRoleName).limit(1).find()
+			const withGrantACL = withGrantResult.getACL()
+			withGrantACL.setReadAccess(user, true)
+			withGrantACL.setWriteAccess(user, true)
 			withGrantResult.getUsers().add(user)
 			await withGrantResult.save()
-			// 未完成，未完成
-			// const grantResult = await this.ensureRole('grant')
-			// const aclWithGrantRole = new Parse.ACL()
-			// aclWithGrantRole.setRoleReadAccess(grantResult, true)
-			// aclWithGrantRole.setRoleWriteAccess(grantResult, true)
-			// this.setACL(aclWithGrantRole)
-			// await this.save()
 		}
 	}
 
-	// 删除实体组成员，并在对应的角色权限中删除此成员
+	// 删除实体组成员，并在对应的角色权限中删除此成员 B5EAD0016A
 	// user: Parse.User，要删除的用户
 	// permissions：Array<String>，该用户在当前实体拥有的权限
 	async delMembers(user) {
 		if (!(user instanceof Parse.Object)) {
 			throw new Error('user must be Parse.Object type')
 		}
+		// 解除user与实体组之间的relation关系
 		const relation = this.relation('members')
 		relation.remove(user)
 		await this.save()
 
 		const grantRole = createNewRoleName(this.className, this.id, 'grant')
-		const roleArray = EntityGroup.Permission.map((v) => {
+		const roleArray = EntityGroup.Permissions.map((v) => {
 			const roleName = createNewRoleName(this.className, this.id, v, this.className)
 			return roleName
 		})
-		const userRoleList = new Parse.Query(Parse.Role).containedIn('name', [...roleArray, grantRole]).find()
-
+		const userRoleList = await new Parse.Query(Parse.Role).containedIn('name', [...roleArray, grantRole]).find()
 		for (let index = 0; index < userRoleList.length; index += 1) {
+			// 因为创建某个角色的时候会把当时的用户添加到角色下
+			// 并以relation关系存在在Role表的users字段中，所以这里要先移除关系
 			const roleRelation = userRoleList[index].relation('users')
 			roleRelation.remove(user)
 			const roleAcl = userRoleList[index].getACL()
-			// 拿到当前角色的ACl，然后判断该ALC中是否包含这个用户id
+			// 拿到当前角色的ACl，然后判断该ALC中是否包含这个用户id，如果包含就禁止用户读写该角色
 			if (roleAcl.permissionsById[user.id]) {
 				roleAcl.setReadAccess(user, false)
 				roleAcl.setWriteAccess(user, false)
@@ -240,7 +246,7 @@ class EntityGroup extends Parse.Object {
 	// user: Parse.User，要改变的用户
 	// permissions：Array<String>，该用户在当前实体拥有的权限
 	// withGrant: 是否分配权限控制权限，子实体组此参数不能为true
-	async setMemberPermission(user, permissions = EntityGroup.Permissions, withGrant = false) {
+	async setMemberPermission(user, withGrant = false, permissions = EntityGroup.Permissions) {
 		if (!(user instanceof Parse.Object)) {
 			throw new Error('user must be Parse.Object type')
 		}
@@ -259,7 +265,10 @@ class EntityGroup extends Parse.Object {
 
 		if (withGrant) {
 			const grantRoleName = createNewRoleName(this.className, this.id, 'grant')
-			const [withGrantResult] = await roleObj.containedIn('name', [grantRoleName]).find()
+			const [withGrantResult] = await roleObj.equalTo('name', grantRoleName).find()
+			const withGrantACL = withGrantResult.getACL()
+			withGrantACL.setReadAccess(user, true)
+			withGrantACL.setWriteAccess(user, true)
 			withGrantResult.getUsers().add(user)
 			await withGrantResult.save()
 		}

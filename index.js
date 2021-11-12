@@ -8,29 +8,33 @@ class organization extends entity.EntityGroup {
 		return super('organization')
 	}
 
-	addEntityTEST(entityData) {
-		return this.addEntity('inventory', entityData)
+	addEntityTest(entityData) {
+		return super.addEntity('inventory', entityData)
+	}
+
+	removeEntityTest(entitydata) {
+		return super.removeEntity('inventory', entitydata)
 	}
 
 	addProject(project) {
-		return this.addEntityGroup('Projects', project)
+		return super.addEntityGroup('Projects', project)
 	}
 
-	removeEntityGroup(entityGroup) {
-		return this.removeEntityGroup('projects', entityGroup)
+	removeEntityGroupTest(entityGroup) {
+		return super.removeEntityGroup('projects', entityGroup)
 	}
 
-	addMembers(user) {
-		return this.addMembers(user)
+	testAddMembers(user) {
+		return super.addMembers(user, true)
 	}
 
-	delMembers(user) {
-		return this.delMembers(user)
+	testDelMembers(user) {
+		return super.delMembers(user)
 	}
 
-	// removeEntityGroup(entityGroup) {
-	// 	return super.removeEntityGroup('projects', entityGroup)
-	// }
+	setMemberPermissiontest(user) {
+		return super.setMemberPermission(user, true)
+	}
 }
 Parse.Object.registerSubclass('organization', organization)
 
@@ -86,47 +90,64 @@ Parse.Object.registerSubclass('Device', Device)
 // testAddEntityGroup()
 
 // 3、
-// async function removeEntityGroup() {
-// 	const org = new organization()
-
+// async function testremoveEntity() {
+// 	const org = new Parse.Query(organization)
+// 	const [result] = await org.find({ useMasterKey: true })
+// 	const pro = new Parse.Query(Project)
+// 	const [data] = await pro.find({ useMasterKey: true })
+// 	result.removeEntityTest(data)
 // }
-// removeEntityGroup()
-
+// testremoveEntity()
 // 4、
-// async function addMembers() {
-// 	const org = new organization()
-// 	const userQuery = new Parse.Query(Parse.User)
-// 	const [userList] = await userQuery.find()
-
-// 	const organizationQuery = new Parse.Query(organization)
-// 	const [organizationList] = await organizationQuery.find()
-// 	console.log('---------------->>>>>>', organizationList)
-// 	org.addMembers(userList)
+// async function testremoveEntityGroup() {
+// 	const org = new Parse.Query(organization)
+// 	const [result] = await org.find({ useMasterKey: true })
+// 	const pro = new Parse.Query(Project)
+// 	const [data] = await pro.find({ useMasterKey: true })
+// 	result.removeEntityGroupTest(data)
 // }
-// addMembers()
+// testremoveEntityGroup()
 
 // 5、
+// async function addMemberstest() {
+// 	const userQuery = new Parse.Query(Parse.User)
+// 	const [userList] = await userQuery.find({ useMasterKey: true })
+
+// 	// const roleQuery = new Parse.Query(Parse.Role)
+// 	// const [roleList] = await roleQuery.find({ useMasterKey: true })
+// 	console.log('-----------------', userList)
+
+// 	// const withGrantACL = roleList.getACL()
+// 	// withGrantACL.setReadAccess(userList, true)
+// 	// withGrantACL.setWriteAccess(userList, true)
+// 	// roleList.getUsers().add(userList)
+// 	// await roleList.save()
+
+// 	const organizationQuery = new Parse.Query(organization)
+// 	const [organizationList] = await organizationQuery.find({ useMasterKey: true })
+// 	console.log('-----------organizationList------organizationList------', organizationList)
+// 	organizationList.testAddMembers(userList)
+// }
+// addMemberstest()
+
+// 6、
 // async function delMembers() {
-// 	const org = new organization()
-// 	const user_query = new Parse.Query(Parse.User)
-// 	const user_list = await user_query.find()
-// 	const organization_query = new Parse.Query('organization')
-// 	const [organization_list] = await organization_query.find()
-// 	org.organization = organization_list
-
-// 	console.log('::::::::::::::',user_list[0])
-
-// 	org.delMembers(user_list[0])
+// 	const userQuery = new Parse.Query(Parse.User)
+// 	const [userList] = await userQuery.find()
+// 	console.log('))))))))))))))))))', userList)
+// 	const organizationQuery = new Parse.Query(organization)
+// 	const [organizationList] = await organizationQuery.find()
+// 	organizationList.testDelMembers(userList)
 // }
 // delMembers()
 
-async function main() {
-	const YYY = new Parse.Query('inventory')
-	const [result] = await YYY.find()
-	console.log('LLLLLLLLLLLLLLLLL', result)
-
-	const ACL = await result.getACL()
-	console.log('LLLLLLLLLACLLLLLLLLL', ACL)
-	console.log('LLLACLLLLLLLACLLACLLLLLLLL', ACL.permissionsById['1jcqMrs20D'])
+// 7、
+async function setMemberPermissiontest() {
+	const userQuery = new Parse.Query(Parse.User)
+	const [userList] = await userQuery.find()
+	console.log('))))))))))))))))))', userList)
+	const organizationQuery = new Parse.Query(organization)
+	const [organizationList] = await organizationQuery.find()
+	organizationList.setMemberPermissiontest(userList)
 }
-main()
+setMemberPermissiontest()
