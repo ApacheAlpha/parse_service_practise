@@ -19,38 +19,36 @@
 |delMembers(user) | user 要被删除的用户 | 无 | 无 | 无 | 删除实体组成员，并在对应的角色权限中删除此成员|
 |setMemberPermission(user, permissions, withGrant = false) | user 被改变的用户 | permissions 用户权限 | withGrant 决定是否授予当前用户最高grant权限 | 无 | 改变某实体组成员的权限|
 
-&nbsp;
-
 ### 1、创建继承于EntityGroup的organization、Project、inventory、device 子类并注册
 
-```
+```javaScript
 class organization extends entity.EntityGroup {
 	constructor() {
 		return super('organization')
 	}
 
 	testAddEntity(entityData) {
-		return super.addEntity('inventory', entityData)
+		return this.addEntity('inventory', entityData)
 	}
 
 	removeEntityTest(entitydata) {
-		return super.removeEntity('inventory', entitydata)
+		return this.removeEntity('inventory', entitydata)
 	}
 
 	testAddEntityGroup(project) {
-		return super.addEntityGroup('projects', project)
+		return this.addEntityGroup('projects', project)
 	}
 
 	removeEntityGroupTest(entityGroup) {
-		return super.removeEntityGroup('projects', entityGroup)
+		return this.removeEntityGroup('projects', entityGroup)
 	}
 
 	testAddMembers(user) {
-		return super.addMembers(user)
+		return this.addMembers(user)
 	}
 
 	testDelMembers(user) {
-		return super.delMembers(user)
+		return this.delMembers(user)
 	}
 }
 Parse.Object.registerSubclass('organization', organization)
@@ -79,9 +77,9 @@ Parse.Object.registerSubclass('Device', Device)
 ```
 
 ### 2、在organization类基础上进行类方法测试，实例如下
-```
+```javaScript
 <!-- 首先分别创建organization、Inventory、Device、Project 四个表，
-并建立相关的relation关系,set方法里的字段可以随意填写,测试过程中可能会涉及到权限问题，所以查询语句均传入master key-->
+并建立相关的relation关系,set方法里的字段可以随意填写-->
 
 async function createTable() {
 	const device = new Device()
@@ -125,9 +123,9 @@ async function testFunctionAddEntity() {
 <!-- 从organization的inventory字段中移除与某个inventory对象的relation关系-->
 async function testremoveEntity() {
 	const org = new Parse.Query(organization)
-	const [result] = await org.find({ useMasterKey: true })
+	const [result] = await org.find()
 	const pro = new Parse.Query(inventory)
-	const [data] = await pro.find({ useMasterKey: true })
+	const [data] = await pro.find()
 	result.removeEntityTest(data)
 }
 3、
@@ -143,18 +141,18 @@ async function testFunctionAddEntityGroup() {
 <!-- 获取一个Project项目组的对象，再从organization的Projects字段移除该对象与organization的relation关系-->
 async function testremoveEntityGroup() {
 	const org = new Parse.Query(organization)
-	const [result] = await org.find({ useMasterKey: true })
+	const [result] = await org.find()
 	const pro = new Parse.Query(Project)
-	const [data] = await pro.find({ useMasterKey: true })
+	const [data] = await pro.find()
 	result.removeEntityGroupTest(data)
 }
 5、
 <!-- 添加用户到项目组到organization -->
 async function addMemberstest() {
 	const userQuery = new Parse.Query(Parse.User)
-	const [userList] = await userQuery.find({ useMasterKey: true })
+	const [userList] = await userQuery.find()
 	const organizationQuery = new Parse.Query(organization)
-	const [organizationList] = await organizationQuery.find({ useMasterKey: true })
+	const [organizationList] = await organizationQuery.find()
 	organizationList.testAddMembers(userList)
 }
 

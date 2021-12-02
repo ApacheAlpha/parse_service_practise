@@ -3,7 +3,6 @@
 /* eslint-disable max-classes-per-file */
 const { Parse } = require('./parse')
 
-let mark = 0
 async function recursivelyDelete(realtionResult) {
 	const relationObj = realtionResult.attributes
 	const keyList = Object.keys(relationObj)
@@ -12,18 +11,13 @@ async function recursivelyDelete(realtionResult) {
 			const newRelation = realtionResult.relation(keyList[i])
 			const newRealtionResult = await newRelation.query().find()
 			for (let j = 0; j < newRealtionResult.length; j += 1) {
-				mark = 0
 				await recursivelyDelete(newRealtionResult[j])
 			}
 			await realtionResult.destroy()
-		} else {
-			mark += 1
-			if (keyList.length === mark) {
-				await realtionResult.destroy()
-				mark = 0
-			}
+			return
 		}
 	}
+	await realtionResult.destroy()
 }
 
 // 创建角色名称的规则 实体组名称__实体组id__权限名称__实体名
@@ -67,7 +61,7 @@ class EntityGroup extends Parse.Object {
 		const roleQuery = new Parse.Query(Parse.Role)
 		let roleName
 		if (permission === 'grant') {
-			roleName = createNewRoleName(this.className, this.id, permission)
+			roleName = createNewRoleName(className, this.id, permission)
 		} else {
 			roleName = createNewRoleName(this.className, this.id, permission, className)
 		}
@@ -110,13 +104,26 @@ class EntityGroup extends Parse.Object {
 
 		const readRole = await this.ensureRole('read', entity.className)
 		const writeRole = await this.ensureRole('write', entity.className)
+		// 创建实体组的读写角色
+		const entityGroupReadRolw = await this.ensureRole('read', this.className)
+		const entityGroupwriteRolw = await this.ensureRole('write', this.className)
+		const entityGroupAcl = this.getACL()
+		// 把当前实体组对象的ACl设置为实体组的角色
+		entityGroupAcl.setRoleReadAccess(entityGroupReadRolw, true)
+		entityGroupAcl.setRoleReadAccess(entityGroupwriteRolw, true)
+		entityGroupAcl.setRoleWriteAccess(entityGroupwriteRolw, true)
+		this.setACL(entityGroupAcl)
+		await this.save()
 
-		const roleACL = new Parse.ACL()
-		roleACL.setRoleReadAccess(readRole, true)
-		roleACL.setRoleWriteAccess(writeRole, true)
+		// 获取当前entity的ACl,并设置ACL权限
+		const entityACL = entity.getACL()
+		entityACL.setRoleReadAccess(readRole, true)
+		entityACL.setRoleWriteAccess(writeRole, true)
 		// 可以写前提可以读，所以writeRole角色下加上setRoleReadAccess权限
-		roleACL.setRoleReadAccess(writeRole, true)
-		entity.setACL(roleACL)
+		entityACL.setRoleReadAccess(writeRole, true)
+		entity.setACL(entityACL)
+		// 记录这个实体的父实体
+		entity.set('parents', this)
 		await entity.save()
 	}
 
@@ -132,6 +139,10 @@ class EntityGroup extends Parse.Object {
 		}
 		const relation = this.relation(fieldName)
 		relation.remove(entity)
+		// 清空父实体信息
+		entity.unset('parents')
+		await entity.save()
+
 		await this.save()
 	}
 
@@ -151,20 +162,28 @@ class EntityGroup extends Parse.Object {
 		await this.save()
 		await this.ensureRole('grant', this.className)
 
-		const currentUser = Parse.User.current()
+		// 在这里把entityGroup对象和this的父子关系添加到entityGroup对象的parents字段
+		entityGroup.set('parents', this)
+		// 创建父项目组的角色权限
+		const thisentityGroupReadRole = await this.ensureRole('read', this.className)
+		const thisentityGroupwriteRole = await this.ensureRole('write', this.className)
+
+		const thisentityGroup = this.getACL()
+		thisentityGroup.setRoleReadAccess(thisentityGroupReadRole, true)
+		thisentityGroup.setRoleReadAccess(thisentityGroupwriteRole, true)
+		thisentityGroup.setRoleWriteAccess(thisentityGroupwriteRole, true)
+		this.setACL(thisentityGroup)
+		await this.save()
+
 		const readRole = await this.ensureRole('read', entityGroup.className)
 		const writeRole = await this.ensureRole('write', entityGroup.className)
-		readRole.getUsers().add(currentUser)
-		writeRole.getUsers().add(currentUser)
-		await readRole.save()
-		await writeRole.save()
 
-		const roleACLProject = new Parse.ACL()
-		roleACLProject.setRoleReadAccess(readRole, true)
+		const entityGroupAcl = entityGroup.getACL()
+		entityGroupAcl.setRoleReadAccess(readRole, true)
 		// 可以写前提可以读，所以writeRole角色下加上setRoleReadAccess权限
-		roleACLProject.setRoleReadAccess(writeRole, true)
-		roleACLProject.setRoleWriteAccess(writeRole, true)
-		entityGroup.setACL(roleACLProject)
+		entityGroupAcl.setRoleReadAccess(writeRole, true)
+		entityGroupAcl.setRoleWriteAccess(writeRole, true)
+		entityGroup.setACL(entityGroupAcl)
 		await entityGroup.save()
 	}
 
@@ -179,6 +198,9 @@ class EntityGroup extends Parse.Object {
 		if (typeof fieldName !== 'string') {
 			throw new Error('fieldName must be String type')
 		}
+		// 清空父实体信息
+		entityGroup.unset('parents')
+		await entityGroup.save()
 		await recursivelyDelete(entityGroup)
 	}
 
@@ -250,10 +272,22 @@ class EntityGroup extends Parse.Object {
 		if (!(user instanceof Parse.Object)) {
 			throw new Error('user must be Parse.Object type')
 		}
+		let queryData
+		if (this.className !== 'Organization') {
+			const relation = this.relation('Organization')
+			const [query] = await relation.query().find()
+			queryData = query
+		}
 
+		let roleName
 		const roleObj = new Parse.Query(Parse.Role)
 		const roleList = permissions.map((v) => {
-			const roleName = createNewRoleName(this.className, this.id, v, this.className)
+			if (this.className === 'Organization') {
+				roleName = createNewRoleName(this.className, this.id, v, this.className)
+			} else {
+				// 如果传进来的不是权限最高的组织实体组
+				roleName = createNewRoleName('Organization', queryData.id, v, this.className)
+			}
 			return roleName
 		})
 

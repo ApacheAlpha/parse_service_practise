@@ -1,44 +1,48 @@
-const should = require('should')
+/* eslint-disable no-await-in-loop */
 const { Parse } = require('./parse')
 
-// describe('Array', () => {
-// 	describe('#indexOf()', () => {
-// 		it('should return -1 when the value is not present', () => {
-// 			[1, 2, 3].indexOf(5).should.equal(-1);
-// 			[1, 2, 3].indexOf(0).should.equal(-1)
-// 		})
-// 	})
-// })
-
-async function signUpUser() {
-	// Parse.User.enableUnsafeCurrentUser()
-	// // Parse.User.become('')
-	const user = new Parse.User()
-	user.set('username', 'user2')
-	user.set('password', 'user2')
-	user.set('email', 'email@example.com')
-	user.set('phone', '415-392-0202')
-	const result = await user.signUp()
-	return result
+async function recursivelyDelete(realtionResult) {
+	const relationObj = realtionResult.attributes
+	const keyList = Object.keys(relationObj)
+	for (let i = 0; i < keyList.length; i += 1) {
+		if (relationObj[keyList[i]] instanceof Parse.Relation) {
+			const newRelation = realtionResult.relation(keyList[i])
+			const newRealtionResult = await newRelation.query().find()
+			for (let j = 0; j < newRealtionResult.length; j += 1) {
+				await recursivelyDelete(newRealtionResult[j])
+			}
+			await realtionResult.destroy()
+			return
+		}
+	}
+	await realtionResult.destroy()
 }
-
-// describe('test', () => {
-// 	it('should instanceOf Parse.User', async () => {
-// 		const result = await signUpUser()
-// 		result.should.be.an.instanceOf(Parse.User)
-// 	})
-// })
-
-async function login() {
-	const loginResult = await Parse.User.logIn('user2', 'user2')
-	return loginResult
-}
-// login()
 
 async function main() {
 	Parse.User.enableUnsafeCurrentUser()
-	// r:02ba813687c3383328740a452cf17416 运行login()后可以在控制面板从Session表中获取sessionToken
-	const JJJ = await Parse.User.become('r:d90e5f916208aaaeadaf7ffcdc1b10fgf')
-	console.log('LLLLLLLLLLLLLLLL', JJJ)
+	await Parse.User.become('r:3cd1455c371d3496e0b07854dc97af3d')
+
+	// const inv = new Parse.Query('Inventory')
+	// const [result] = await inv.find()
+	// await recursivelyDelete(result)
+
+	const pro = new Parse.Query('Project')
+	const [result] = await pro.find()
+	result.unset('parents')
+	await result.save()
+	console.log('))))))))1))))))))))')
+	// console.log(')))))))2)))))))))', result.attributes)
+
+	// const dev = new Parse.Query('Device')
+	// const [data] = await dev.find()
+	// console.log(')))))))))2)))))))))', data)
+	// // await recursivelyDelete(result)
+
+	// result.set('parents', data)
+	// await result.save()
+
+	// const inv = new Parse.Query('UUUu')
+	// const [result] = await inv.find()
+	// console.log(':::::::::::::::::', await result.destroy())
 }
 main()
