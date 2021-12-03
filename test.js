@@ -1,5 +1,5 @@
 /* eslint-disable max-classes-per-file */
-const should = require('should')
+require('should')
 const entity = require('./entity')
 const { Parse } = require('./parse')
 
@@ -141,7 +141,7 @@ async function testremoveEntity() {
 	const [result] = await org.find()
 	const inv = new Parse.Query(Inventory)
 	const [data] = await inv.find()
-	result.removeEntityTest(data)
+	await result.removeEntityTest(data)
 }
 
 async function testAddEntityGroup() {
@@ -149,7 +149,7 @@ async function testAddEntityGroup() {
 	const [result] = await ProjectQuery.find()
 	const organizationQuery = new Parse.Query(Organization)
 	const [organizationList] = await organizationQuery.find()
-	organizationList.addProject(result)
+	await organizationList.addProject(result)
 }
 
 async function testremoveEntityGroup() {
@@ -157,160 +157,137 @@ async function testremoveEntityGroup() {
 	const [result] = await org.find()
 	const pro = new Parse.Query(Project)
 	const [data] = await pro.find()
-	result.removeEntityGroupTest(data)
+	await result.removeEntityGroupTest(data)
 }
 
 async function addMemberstest() {
 	const currentUser = await Parse.User.become('r:05d0ff3b1c07565e8a00049a8ade7cc2')
 	const organizationQuery = new Parse.Query(Organization)
 	const [organizationList] = await organizationQuery.find()
-	organizationList.testAddMembers(currentUser)
+	await organizationList.testAddMembers(currentUser)
 }
 
 async function delMembers() {
 	const currentUser = await Parse.User.become('r:05d0ff3b1c07565e8a00049a8ade7cc2')
 	const organizationQuery = new Parse.Query(Organization)
 	const [organizationList] = await organizationQuery.find()
-	organizationList.testDelMembers(currentUser)
+	await organizationList.testDelMembers(currentUser)
 }
 
 async function setMemberPermissiontest() {
 	Parse.User.enableUnsafeCurrentUser()
-	const currentUser = await Parse.User.become('r:05d0ff3b1c07565e8a00049a8ade7cc2')
-
-	// const organizationQuery = new Parse.Query(Organization)
-	// const [organizationList] = await organizationQuery.find()
-	// organizationList.setMemberPermissiontest(currentUser)
-
+	await Parse.User.become('r:05d0ff3b1c07565e8a00049a8ade7cc2')
+	const addUser = await new Parse.Query(Parse.User).find()
 	const projectQuery = new Parse.Query(Project)
 	const [projectQueryList] = await projectQuery.find()
-	projectQueryList.setMemberPermission(currentUser)
+	await projectQueryList.setMemberPermission(addUser[1])
 }
 
-// async function test() {
-// 	Parse.User.enableUnsafeCurrentUser()
-// 	await Parse.User.become('r:05d0ff3b1c07565e8a00049a8ade7cc2')
-// 	const invQuery = new Parse.Query(Inventory)
-// 	const [invQueryList] = await invQuery.find()
-// 	console.log(')))))))))projectQueryList))))))))', invQueryList)
-// }
-
 describe('test function', () => {
-	// it('signUpUser result should instanceOf Parse.User', async () => {
-	// 	const result = await signUpUser()
-	// 	result.should.be.an.instanceOf(Parse.User)
-	// })
+	it('signUpUser result should instanceOf Parse.User', async () => {
+		const result = await signUpUser()
+		result.should.be.an.instanceOf(Parse.User)
+	})
 
-	// it('login result should instanceOf Parse.User', async () => {
-	// 	const result = await login()
-	// 	result.should.be.an.instanceOf(Parse.User)
-	// })
+	it('login result should instanceOf Parse.User', async () => {
+		const result = await login()
+		result.should.be.an.instanceOf(Parse.User)
+	})
 
-	// it('createOrganization result should instanceOf Organization', async () => {
-	// 	const result = await createOrganization()
-	// 	result.should.be.an.instanceOf(Organization)
-	// })
+	it('createOrganization result should instanceOf Organization', async () => {
+		const result = await createOrganization()
+		result.should.be.an.instanceOf(Organization)
+	})
 
-	// it('createProject result should instanceOf Project', async () => {
-	// 	const result = await createProject()
-	// 	result.should.be.an.instanceOf(Project)
-	// })
+	it('createProject result should instanceOf Project', async () => {
+		const result = await createProject()
+		result.should.be.an.instanceOf(Project)
+	})
 
-	// it('createInventory result should instanceOf Inventory', async () => {
-	// 	const result = await createInventory()
-	// 	result.should.be.an.instanceOf(Inventory)
-	// })
+	it('createInventory result should instanceOf Inventory', async () => {
+		const result = await createInventory()
+		result.should.be.an.instanceOf(Inventory)
+	})
 
-	// it('createDevice result should instanceOf Device', async () => {
-	// 	const result = await createDevice()
-	// 	result.should.be.an.instanceOf(Device)
-	// })
+	it('createDevice result should instanceOf Device', async () => {
+		const result = await createDevice()
+		result.should.be.an.instanceOf(Device)
+	})
 
 	// 测试函数开始
-	// it('createDevice result should instanceOf Device', async () => {
-	// 	// await test()
-	// 	Parse.User.enableUnsafeCurrentUser()
-	// 	await Parse.User.become('r:05d0ff3b1c07565e8a00049a8ade7cc2')
-	// 	await testremoveEntity()
-	// })
+	it('result length should equal 1', async () => {
+		Parse.User.enableUnsafeCurrentUser()
+		await Parse.User.become('r:05d0ff3b1c07565e8a00049a8ade7cc2')
+		await testAddEntity()
 
-	// it('result length should equal 1', async () => {
-	// 	Parse.User.enableUnsafeCurrentUser()
-	// 	await Parse.User.become('r:05d0ff3b1c07565e8a00049a8ade7cc2')
-	// 	await testAddEntity()
+		const inv = new Parse.Query(Inventory)
+		const [invData] = await inv.find()
+		const org = new Parse.Query(Organization)
+		org.equalTo('inventory', invData)
+		const result = await org.find()
+		result.should.have.length(1)
+	})
 
-	// 	const inv = new Parse.Query(Inventory)
-	// 	const [invData] = await inv.find()
-	// 	const org = new Parse.Query(Organization)
-	// 	org.equalTo('inventory', invData)
-	// 	const result = await org.find()
-	// 	result.should.have.length(1)
-	// })
+	it('finalData should be undefined', async () => {
+		Parse.User.enableUnsafeCurrentUser()
+		await Parse.User.become('r:05d0ff3b1c07565e8a00049a8ade7cc2')
+		await testremoveEntity()
+		const org = new Parse.Query(Organization)
+		const [result] = await org.find()
+		const data = result.get('parents')
+		const finalData = (data === undefined)
+		finalData.should.be.true()
+	})
 
-	// it('result length should equal 0', async () => {
-	// 	Parse.User.enableUnsafeCurrentUser()
-	// 	await Parse.User.become('r:05d0ff3b1c07565e8a00049a8ade7cc2')
-	// 	await testremoveEntity()
+	it('result length should equal 1', async () => {
+		Parse.User.enableUnsafeCurrentUser()
+		await Parse.User.become('r:05d0ff3b1c07565e8a00049a8ade7cc2')
+		await testAddEntityGroup()
+		const pro = new Parse.Query(Project)
+		const [proData] = await pro.find()
+		const org = new Parse.Query(Organization)
+		const result = await org.find()
+		org.equalTo('Projects', proData)
+		result.should.have.length(1)
+	})
 
-	// 	const inv = new Parse.Query(Inventory)
-	// 	const [invData] = await inv.find()
-	// 	const org = new Parse.Query(Organization)
-	// 	org.equalTo('inventory', invData)
-	// 	const result = await org.find()
-	// 	result.should.have.length(0)
-	// })
+	it('result length should equal 0', async () => {
+		Parse.User.enableUnsafeCurrentUser()
+		await Parse.User.become('r:05d0ff3b1c07565e8a00049a8ade7cc2')
+		await testremoveEntityGroup()
+		const pro = new Parse.Query(Project)
+		const [proData] = await pro.find()
+		const data = proData.get('parents')
+		const finalData = (data === undefined)
+		finalData.should.be.true()
+	})
 
-	// it('result length should equal 1', async () => {
-	// 	Parse.User.enableUnsafeCurrentUser()
-	// 	await Parse.User.become('r:05d0ff3b1c07565e8a00049a8ade7cc2')
-	// 	await testAddEntityGroup()
-	// 	const pro = new Parse.Query(Project)
-	// 	const [proData] = await pro.find()
-	// 	const org = new Parse.Query(Organization)
-	// 	const result = await org.find()
-	// 	org.equalTo('Projects', proData)
-	// 	result.should.have.length(1)
-	// })
-
-	// it('result length should equal 0', async () => {
-	// 	Parse.User.enableUnsafeCurrentUser()
-	// 	await Parse.User.become('r:05d0ff3b1c07565e8a00049a8ade7cc2')
-	// 	await testremoveEntityGroup()
-	// 	const pro = new Parse.Query(Project)
-	// 	const [proData] = await pro.find()
-	// 	const org = new Parse.Query(Organization)
-	// 	org.equalTo('Projects', proData)
-	// 	const result = await org.find()
-	// 	result.should.have.length(0)
-	// })
-
-	// it('result length should equal 1', async () => {
-	// 	Parse.User.enableUnsafeCurrentUser()
-	// 	const currentUser = await Parse.User.become('r:05d0ff3b1c07565e8a00049a8ade7cc2')
-	// 	await addMemberstest()
-	// 	const org = new Parse.Query(Organization)
-	// 	org.equalTo('members', currentUser)
-	// 	const result = await org.find()
-	// 	result.should.have.length(1)
-	// })
-
-	// it('result length should equal 0', async () => {
-	// 	Parse.User.enableUnsafeCurrentUser()
-	// 	const currentUser = await Parse.User.become('r:05d0ff3b1c07565e8a00049a8ade7cc2')
-	// 	await delMembers()
-	// 	const org = new Parse.Query(Organization)
-	// 	org.equalTo('members', currentUser)
-	// 	const result = await org.find()
-	// 	result.should.have.length(0)
-	// })
+	it('result length should equal 1', async () => {
+		Parse.User.enableUnsafeCurrentUser()
+		const currentUser = await Parse.User.become('r:05d0ff3b1c07565e8a00049a8ade7cc2')
+		await addMemberstest()
+		const org = new Parse.Query(Organization)
+		org.equalTo('members', currentUser)
+		const result = await org.find()
+		result.should.have.length(1)
+	})
 
 	it('result length should equal 0', async () => {
 		Parse.User.enableUnsafeCurrentUser()
 		const currentUser = await Parse.User.become('r:05d0ff3b1c07565e8a00049a8ade7cc2')
+		await delMembers()
+		const org = new Parse.Query(Organization)
+		org.equalTo('members', currentUser)
+		const result = await org.find()
+		result.should.have.length(0)
+	})
+
+	it('result length should equal 0', async () => {
+		Parse.User.enableUnsafeCurrentUser()
+		await Parse.User.become('r:300b233e381f232a52a561099737ff5b')
 		await setMemberPermissiontest()
-		// const org = new Parse.Query(Organization)
-		// org.equalTo('members', currentUser)
-		// const result = await org.find()
-		// result.should.have.length(0)
+		const pro = new Parse.Query(Project)
+		const result = await pro.find()
+		result.should.have.length(1)
 	})
 })

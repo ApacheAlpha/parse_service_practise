@@ -22,6 +22,10 @@
 ### 1、创建继承于EntityGroup的organization、Project、inventory、device 子类并注册
 
 ```javaScript
+const should = require('should')
+const entity = require('./entity')
+const { Parse } = require('./parse')
+
 class organization extends entity.EntityGroup {
 	constructor() {
 		return super('organization')
@@ -78,92 +82,233 @@ Parse.Object.registerSubclass('Device', Device)
 
 ### 2、在organization类基础上进行类方法测试，实例如下
 ```javaScript
-<!-- 首先分别创建organization、Inventory、Device、Project 四个表，
-并建立相关的relation关系,set方法里的字段可以随意填写-->
-
-async function createTable() {
-	const device = new Device()
-	device.set('sn', 'BD897879T')
-	await device.save()
-
-	const project = new Project()
-	const devicesRelation = organization.relation('devices')
-	devicesRelation.add(device)
-	await project.save()
-
-	const inventory = new Inventory()
-	inventory.set('device_id', '87842342342hjh324jh23')
-	await inventory.save()
-
-	const organization = new organization()
-	const projectsRelation = organization.relation('projects')
-	projectsRelation.add(project)
-
-	const inventoryRelation = organization.relation('inventorys')
-	inventoryRelation.add(inventory)
-	await organization.save()
+<!-- 首先分别创建organization、Inventory、Device、Project 四个表-->
+	// 先注册一个用户
+async function signUpUser() {
+	const user = new Parse.User()
+	user.set('username', 'user2')
+	user.set('password', 'user2')
+	user.set('email', 'email@example.com')
+	user.set('phone', '415-392-0202')
+	const result = await user.signUp()
+	return result
+}
+// 注册用户后进行登录
+async function login() {
+	const loginResult = await Parse.User.logIn('user2', 'user2')
+	return loginResult
 }
 
-createTable()
-
-1、
-async function testFunctionAddEntity() {
-	<!-- 创建一个inventory实体对象
-	并创建实体对象与实体组organization的relation关系到organization的inventory字段-->
-
-	const invObj = new Parse.Object('inventory')
-	invObj.set('sn', '测试000')
-	await invObj.save()
-
-	const organization_query = new Parse.Query(organization)
-	const [organization_list] = await organization_query.find()
-	organization_list.testAddEntity(invObj)
+// 创建Organization表并添加数据
+async function createOrganization() {
+	Parse.User.enableUnsafeCurrentUser()
+	// r:02ba813687c3383328740a452cf17416 运行login()后可以在控制面板从Session表中获取sessionToken
+	// 但是这个sessionToken是有时效性的,出现 Error: Invalid session token,运行login()再次获取即可
+	const currentUser = await Parse.User.become('r:05d0ff3b1c07565e8a00049a8ade7cc2')
+	const organization = new Organization()
+	organization.set('organization_name', 'organization01')
+	// 创建一条数据的时候要把这条数据ACL设置为当前用户，下同
+	organization.setACL(new Parse.ACL(currentUser))
+	const organizationResult = await organization.save()
+	return organizationResult
 }
-2、
-<!-- 从organization的inventory字段中移除与某个inventory对象的relation关系-->
+
+// 创建Project表并添加数据
+async function createProject() {
+	Parse.User.enableUnsafeCurrentUser()
+	const currentUser = await Parse.User.become('r:05d0ff3b1c07565e8a00049a8ade7cc2')
+	const pro = new Project()
+	pro.set('project_name', 'project01')
+	pro.setACL(new Parse.ACL(currentUser))
+	const proResult = await pro.save()
+	return proResult
+}
+
+// 创建Inventory表并添加数据
+async function createInventory() {
+	Parse.User.enableUnsafeCurrentUser()
+	const currentUser = await Parse.User.become('r:05d0ff3b1c07565e8a00049a8ade7cc2')
+	const inv = new Inventory()
+	inv.set('inventory_name', 'inventory01')
+	inv.setACL(new Parse.ACL(currentUser))
+	const invResult = await inv.save()
+	return invResult
+}
+
+// 创建Device表并添加数据
+async function createDevice() {
+	Parse.User.enableUnsafeCurrentUser()
+	const currentUser = await Parse.User.become('r:05d0ff3b1c07565e8a00049a8ade7cc2')
+	const dev = new Device()
+	dev.set('sn', 'AA00000110')
+	dev.setACL(new Parse.ACL(currentUser))
+	const idevResult = await dev.save()
+	return idevResult
+}
+
+// 编写测试函数
+async function testAddEntity() {
+	const invQuery = new Parse.Query(Inventory)
+	const [invQueryList] = await invQuery.find()
+	const organizationQuery = new Parse.Query(Organization)
+	const [organizationList] = await organizationQuery.find()
+	await organizationList.addEntityTest(invQueryList)
+}
+
 async function testremoveEntity() {
-	const org = new Parse.Query(organization)
+	const org = new Parse.Query(Organization)
 	const [result] = await org.find()
-	const pro = new Parse.Query(inventory)
-	const [data] = await pro.find()
-	result.removeEntityTest(data)
+	const inv = new Parse.Query(Inventory)
+	const [data] = await inv.find()
+	await result.removeEntityTest(data)
 }
-3、
-async function testFunctionAddEntityGroup() {
-	<!-- 获取一个Project项目组的对象，再建立Project与organization的relation关系-->
-	const Project_query = new Parse.Query(Project)
-	const [result] = await Project_query.find()
-	const organization_query = new Parse.Query(organization)
-	const [organization_list] = await organization_query.find()
-	organization_list.testAddEntityGroup(result)
+
+async function testAddEntityGroup() {
+	const ProjectQuery = new Parse.Query(Project)
+	const [result] = await ProjectQuery.find()
+	const organizationQuery = new Parse.Query(Organization)
+	const [organizationList] = await organizationQuery.find()
+	await organizationList.addProject(result)
 }
-4、
-<!-- 获取一个Project项目组的对象，再从organization的Projects字段移除该对象与organization的relation关系-->
+
 async function testremoveEntityGroup() {
-	const org = new Parse.Query(organization)
+	const org = new Parse.Query(Organization)
 	const [result] = await org.find()
 	const pro = new Parse.Query(Project)
 	const [data] = await pro.find()
-	result.removeEntityGroupTest(data)
-}
-5、
-<!-- 添加用户到项目组到organization -->
-async function addMemberstest() {
-	const userQuery = new Parse.Query(Parse.User)
-	const [userList] = await userQuery.find()
-	const organizationQuery = new Parse.Query(organization)
-	const [organizationList] = await organizationQuery.find()
-	organizationList.testAddMembers(userList)
+	await result.removeEntityGroupTest(data)
 }
 
-6、
-<!-- 从项目组organization中删除user对象 -->
-async function delMembers() {
-	const userQuery = new Parse.Query(Parse.User)
-	const [user] = await userQuery.find()
-	const organizationQuery = new Parse.Query(organization)
-	const [organizationData] = await organizationQuery.find()
-	organizationData.testDelMembers(user)
+async function addMemberstest() {
+	const currentUser = await Parse.User.become('r:05d0ff3b1c07565e8a00049a8ade7cc2')
+	const organizationQuery = new Parse.Query(Organization)
+	const [organizationList] = await organizationQuery.find()
+	await organizationList.testAddMembers(currentUser)
 }
+
+async function delMembers() {
+	const currentUser = await Parse.User.become('r:05d0ff3b1c07565e8a00049a8ade7cc2')
+	const organizationQuery = new Parse.Query(Organization)
+	const [organizationList] = await organizationQuery.find()
+	await organizationList.testDelMembers(currentUser)
+}
+
+async function setMemberPermissiontest() {
+	Parse.User.enableUnsafeCurrentUser()
+	await Parse.User.become('r:05d0ff3b1c07565e8a00049a8ade7cc2')
+	const addUser = await new Parse.Query(Parse.User).find()
+	const projectQuery = new Parse.Query(Project)
+	const [projectQueryList] = await projectQuery.find()
+	await projectQueryList.setMemberPermission(addUser[1])
+}
+
+describe('test function', () => {
+	it('signUpUser result should instanceOf Parse.User', async () => {
+		const result = await signUpUser()
+		result.should.be.an.instanceOf(Parse.User)
+	})
+
+	it('login result should instanceOf Parse.User', async () => {
+		const result = await login()
+		result.should.be.an.instanceOf(Parse.User)
+	})
+
+	it('createOrganization result should instanceOf Organization', async () => {
+		const result = await createOrganization()
+		result.should.be.an.instanceOf(Organization)
+	})
+
+	it('createProject result should instanceOf Project', async () => {
+		const result = await createProject()
+		result.should.be.an.instanceOf(Project)
+	})
+
+	it('createInventory result should instanceOf Inventory', async () => {
+		const result = await createInventory()
+		result.should.be.an.instanceOf(Inventory)
+	})
+
+	it('createDevice result should instanceOf Device', async () => {
+		const result = await createDevice()
+		result.should.be.an.instanceOf(Device)
+	})
+
+	// 测试函数开始
+	it('result length should equal 1', async () => {
+		Parse.User.enableUnsafeCurrentUser()
+		await Parse.User.become('r:05d0ff3b1c07565e8a00049a8ade7cc2')
+		await testAddEntity()
+
+		const inv = new Parse.Query(Inventory)
+		const [invData] = await inv.find()
+		const org = new Parse.Query(Organization)
+		org.equalTo('inventory', invData)
+		const result = await org.find()
+		result.should.have.length(1)
+	})
+
+	it('finalData should be undefined', async () => {
+		Parse.User.enableUnsafeCurrentUser()
+		await Parse.User.become('r:05d0ff3b1c07565e8a00049a8ade7cc2')
+		await testremoveEntity()
+		const org = new Parse.Query(Organization)
+		const [result] = await org.find()
+		const data = result.get('parents')
+		const finalData = (data === undefined)
+		finalData.should.be.true()
+	})
+
+	it('result length should equal 1', async () => {
+		Parse.User.enableUnsafeCurrentUser()
+		await Parse.User.become('r:05d0ff3b1c07565e8a00049a8ade7cc2')
+		await testAddEntityGroup()
+		const pro = new Parse.Query(Project)
+		const [proData] = await pro.find()
+		const org = new Parse.Query(Organization)
+		const result = await org.find()
+		org.equalTo('Projects', proData)
+		result.should.have.length(1)
+	})
+
+	it('result length should equal 0', async () => {
+		Parse.User.enableUnsafeCurrentUser()
+		await Parse.User.become('r:05d0ff3b1c07565e8a00049a8ade7cc2')
+		await testremoveEntityGroup()
+		const pro = new Parse.Query(Project)
+		const [proData] = await pro.find()
+		const data = proData.get('parents')
+		const finalData = (data === undefined)
+		finalData.should.be.true()
+	})
+
+	it('result length should equal 1', async () => {
+		Parse.User.enableUnsafeCurrentUser()
+		const currentUser = await Parse.User.become('r:05d0ff3b1c07565e8a00049a8ade7cc2')
+		await addMemberstest()
+		const org = new Parse.Query(Organization)
+		org.equalTo('members', currentUser)
+		const result = await org.find()
+		result.should.have.length(1)
+	})
+
+	it('result length should equal 0', async () => {
+		Parse.User.enableUnsafeCurrentUser()
+		const currentUser = await Parse.User.become('r:05d0ff3b1c07565e8a00049a8ade7cc2')
+		await delMembers()
+		const org = new Parse.Query(Organization)
+		org.equalTo('members', currentUser)
+		const result = await org.find()
+		result.should.have.length(0)
+	})
+
+	it('result length should equal 0', async () => {
+		Parse.User.enableUnsafeCurrentUser()
+		await Parse.User.become('r:300b233e381f232a52a561099737ff5b')
+		await setMemberPermissiontest()
+		const pro = new Parse.Query(Project)
+		const result = await pro.find()
+		result.should.have.length(1)
+	})
+})
 ```
 
