@@ -89,7 +89,7 @@ async function createOrganization() {
 	Parse.User.enableUnsafeCurrentUser()
 	// r:02ba813687c3383328740a452cf17416 运行login()后可以在控制面板从Session表中获取sessionToken
 	// 但是这个sessionToken是有时效性的,出现 Error: Invalid session token,运行login()再次获取即可
-	const currentUser = await Parse.User.become('r:3cd1455c371d3496e0b07854dc97af3d')
+	const currentUser = await Parse.User.become('r:05d0ff3b1c07565e8a00049a8ade7cc2')
 	const organization = new Organization()
 	organization.set('organization_name', 'organization01')
 	// 创建一条数据的时候要把这条数据ACL设置为当前用户
@@ -100,7 +100,7 @@ async function createOrganization() {
 
 async function createProject() {
 	Parse.User.enableUnsafeCurrentUser()
-	const currentUser = await Parse.User.become('r:3cd1455c371d3496e0b07854dc97af3d')
+	const currentUser = await Parse.User.become('r:05d0ff3b1c07565e8a00049a8ade7cc2')
 	const pro = new Project()
 	pro.set('project_name', 'project01')
 	pro.setACL(new Parse.ACL(currentUser))
@@ -110,7 +110,7 @@ async function createProject() {
 
 async function createInventory() {
 	Parse.User.enableUnsafeCurrentUser()
-	const currentUser = await Parse.User.become('r:3cd1455c371d3496e0b07854dc97af3d')
+	const currentUser = await Parse.User.become('r:05d0ff3b1c07565e8a00049a8ade7cc2')
 	const inv = new Inventory()
 	inv.set('inventory_name', 'inventory01')
 	inv.setACL(new Parse.ACL(currentUser))
@@ -120,7 +120,7 @@ async function createInventory() {
 
 async function createDevice() {
 	Parse.User.enableUnsafeCurrentUser()
-	const currentUser = await Parse.User.become('r:3cd1455c371d3496e0b07854dc97af3d')
+	const currentUser = await Parse.User.become('r:05d0ff3b1c07565e8a00049a8ade7cc2')
 	const dev = new Device()
 	dev.set('sn', 'AA00000110')
 	dev.setACL(new Parse.ACL(currentUser))
@@ -161,14 +161,14 @@ async function testremoveEntityGroup() {
 }
 
 async function addMemberstest() {
-	const currentUser = await Parse.User.become('r:3cd1455c371d3496e0b07854dc97af3d')
+	const currentUser = await Parse.User.become('r:05d0ff3b1c07565e8a00049a8ade7cc2')
 	const organizationQuery = new Parse.Query(Organization)
 	const [organizationList] = await organizationQuery.find()
 	organizationList.testAddMembers(currentUser)
 }
 
 async function delMembers() {
-	const currentUser = await Parse.User.become('r:3cd1455c371d3496e0b07854dc97af3d')
+	const currentUser = await Parse.User.become('r:05d0ff3b1c07565e8a00049a8ade7cc2')
 	const organizationQuery = new Parse.Query(Organization)
 	const [organizationList] = await organizationQuery.find()
 	organizationList.testDelMembers(currentUser)
@@ -176,7 +176,7 @@ async function delMembers() {
 
 async function setMemberPermissiontest() {
 	Parse.User.enableUnsafeCurrentUser()
-	const currentUser = await Parse.User.become('r:3cd1455c371d3496e0b07854dc97af3d')
+	const currentUser = await Parse.User.become('r:05d0ff3b1c07565e8a00049a8ade7cc2')
 
 	// const organizationQuery = new Parse.Query(Organization)
 	// const [organizationList] = await organizationQuery.find()
@@ -189,7 +189,7 @@ async function setMemberPermissiontest() {
 
 // async function test() {
 // 	Parse.User.enableUnsafeCurrentUser()
-// 	await Parse.User.become('r:3cd1455c371d3496e0b07854dc97af3d')
+// 	await Parse.User.become('r:05d0ff3b1c07565e8a00049a8ade7cc2')
 // 	const invQuery = new Parse.Query(Inventory)
 // 	const [invQueryList] = await invQuery.find()
 // 	console.log(')))))))))projectQueryList))))))))', invQueryList)
@@ -230,13 +230,13 @@ describe('test function', () => {
 	// it('createDevice result should instanceOf Device', async () => {
 	// 	// await test()
 	// 	Parse.User.enableUnsafeCurrentUser()
-	// 	await Parse.User.become('r:3cd1455c371d3496e0b07854dc97af3d')
+	// 	await Parse.User.become('r:05d0ff3b1c07565e8a00049a8ade7cc2')
 	// 	await testremoveEntity()
 	// })
 
 	// it('result length should equal 1', async () => {
 	// 	Parse.User.enableUnsafeCurrentUser()
-	// 	await Parse.User.become('r:3cd1455c371d3496e0b07854dc97af3d')
+	// 	await Parse.User.become('r:05d0ff3b1c07565e8a00049a8ade7cc2')
 	// 	await testAddEntity()
 
 	// 	const inv = new Parse.Query(Inventory)
@@ -249,7 +249,7 @@ describe('test function', () => {
 
 	// it('result length should equal 0', async () => {
 	// 	Parse.User.enableUnsafeCurrentUser()
-	// 	await Parse.User.become('r:3cd1455c371d3496e0b07854dc97af3d')
+	// 	await Parse.User.become('r:05d0ff3b1c07565e8a00049a8ade7cc2')
 	// 	await testremoveEntity()
 
 	// 	const inv = new Parse.Query(Inventory)
@@ -262,7 +262,7 @@ describe('test function', () => {
 
 	// it('result length should equal 1', async () => {
 	// 	Parse.User.enableUnsafeCurrentUser()
-	// 	await Parse.User.become('r:3cd1455c371d3496e0b07854dc97af3d')
+	// 	await Parse.User.become('r:05d0ff3b1c07565e8a00049a8ade7cc2')
 	// 	await testAddEntityGroup()
 	// 	const pro = new Parse.Query(Project)
 	// 	const [proData] = await pro.find()
@@ -274,7 +274,7 @@ describe('test function', () => {
 
 	// it('result length should equal 0', async () => {
 	// 	Parse.User.enableUnsafeCurrentUser()
-	// 	await Parse.User.become('r:3cd1455c371d3496e0b07854dc97af3d')
+	// 	await Parse.User.become('r:05d0ff3b1c07565e8a00049a8ade7cc2')
 	// 	await testremoveEntityGroup()
 	// 	const pro = new Parse.Query(Project)
 	// 	const [proData] = await pro.find()
@@ -286,7 +286,7 @@ describe('test function', () => {
 
 	// it('result length should equal 1', async () => {
 	// 	Parse.User.enableUnsafeCurrentUser()
-	// 	const currentUser = await Parse.User.become('r:3cd1455c371d3496e0b07854dc97af3d')
+	// 	const currentUser = await Parse.User.become('r:05d0ff3b1c07565e8a00049a8ade7cc2')
 	// 	await addMemberstest()
 	// 	const org = new Parse.Query(Organization)
 	// 	org.equalTo('members', currentUser)
@@ -296,7 +296,7 @@ describe('test function', () => {
 
 	// it('result length should equal 0', async () => {
 	// 	Parse.User.enableUnsafeCurrentUser()
-	// 	const currentUser = await Parse.User.become('r:3cd1455c371d3496e0b07854dc97af3d')
+	// 	const currentUser = await Parse.User.become('r:05d0ff3b1c07565e8a00049a8ade7cc2')
 	// 	await delMembers()
 	// 	const org = new Parse.Query(Organization)
 	// 	org.equalTo('members', currentUser)
@@ -306,7 +306,7 @@ describe('test function', () => {
 
 	it('result length should equal 0', async () => {
 		Parse.User.enableUnsafeCurrentUser()
-		const currentUser = await Parse.User.become('r:3cd1455c371d3496e0b07854dc97af3d')
+		const currentUser = await Parse.User.become('r:05d0ff3b1c07565e8a00049a8ade7cc2')
 		await setMemberPermissiontest()
 		// const org = new Parse.Query(Organization)
 		// org.equalTo('members', currentUser)

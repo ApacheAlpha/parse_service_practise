@@ -20,6 +20,23 @@ async function recursivelyDelete(realtionResult) {
 	await realtionResult.destroy()
 }
 
+async function recursivelyFind(realtionResult) {
+	const relationObj = realtionResult.get('parents')
+	if (!relationObj) {
+		return realtionResult
+	}
+	const [queryResult] = await new Parse.Query(relationObj.className).equalTo('id', relationObj.className.id).limit(1).find()
+	if (queryResult && queryResult.get('parents')) {
+		const result = await recursivelyFind(queryResult.get('parents'))
+		if (result) {
+			return result
+		}
+	} else {
+		return queryResult
+	}
+	return null
+}
+
 // 创建角色名称的规则 实体组名称__实体组id__权限名称__实体名
 function createNewRoleName(entityGroupClassName, entityGroupId, permission, entityClassName) {
 	if (entityClassName) {
@@ -272,22 +289,13 @@ class EntityGroup extends Parse.Object {
 		if (!(user instanceof Parse.Object)) {
 			throw new Error('user must be Parse.Object type')
 		}
-		let queryData
-		if (this.className !== 'Organization') {
-			const relation = this.relation('Organization')
-			const [query] = await relation.query().find()
-			queryData = query
-		}
 
-		let roleName
+		const originalParents = await recursivelyFind(this)
+
 		const roleObj = new Parse.Query(Parse.Role)
 		const roleList = permissions.map((v) => {
-			if (this.className === 'Organization') {
-				roleName = createNewRoleName(this.className, this.id, v, this.className)
-			} else {
-				// 如果传进来的不是权限最高的组织实体组
-				roleName = createNewRoleName('Organization', queryData.id, v, this.className)
-			}
+			const roleName = createNewRoleName(originalParents.className, originalParents.id,
+				v, this.className)
 			return roleName
 		})
 
