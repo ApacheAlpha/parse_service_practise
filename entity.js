@@ -52,7 +52,7 @@ class EntityGroup extends Parse.Object {
 	}
 
 	async ensurePermissionGrant() {
-		// ensurePermissionGrant 只用来验证grant权限是否存在，不存在则自动创建,创建的时候把当前用户添加到gramt角色
+		// ensurePermissionGrant 只用来验证grant权限是否存在，不存在则自动创建,创建的时候把当前用户添加到grant角色
 		const roleQuery = new Parse.Query(Parse.Role)
 		const grantRole = createNewRoleName(this.className, this.id, 'grant')
 		const [grantRoleResult] = await roleQuery.equalTo('name', grantRole).limit(1).find()
@@ -82,7 +82,6 @@ class EntityGroup extends Parse.Object {
 		} else {
 			roleName = createNewRoleName(this.className, this.id, permission, className)
 		}
-		await this.ensurePermissionGrant()
 
 		const [Role] = await roleQuery.equalTo('name', roleName).limit(1).find()
 		const currentUser = Parse.User.current()
@@ -92,6 +91,7 @@ class EntityGroup extends Parse.Object {
 		if (!Role) {
 			const grantRoleName = createNewRoleName(this.className, this.id, 'grant')
 			const roleACL = new Parse.ACL()
+			// 对当前roleName 角色设置ACl权限为grantRoleName
 			roleACL.setRoleReadAccess(grantRoleName, true)
 			roleACL.setRoleWriteAccess(grantRoleName, true)
 			const role = new Parse.Role(roleName, roleACL)
@@ -113,7 +113,6 @@ class EntityGroup extends Parse.Object {
 			throw new Error('fieldName must be String type')
 		}
 
-		createNewRoleName(this.className, this.id, 'grant')
 		const relation = this.relation(fieldName)
 		relation.add(entity)
 		await this.save()
@@ -122,13 +121,13 @@ class EntityGroup extends Parse.Object {
 		const readRole = await this.ensureRole('read', entity.className)
 		const writeRole = await this.ensureRole('write', entity.className)
 		// 创建实体组的读写角色
-		const entityGroupReadRolw = await this.ensureRole('read', this.className)
-		const entityGroupwriteRolw = await this.ensureRole('write', this.className)
+		const entityGroupReadRole = await this.ensureRole('read', this.className)
+		const entityGroupwriteRole = await this.ensureRole('write', this.className)
 		const entityGroupAcl = this.getACL()
 		// 把当前实体组对象的ACl设置为实体组的角色
-		entityGroupAcl.setRoleReadAccess(entityGroupReadRolw, true)
-		entityGroupAcl.setRoleReadAccess(entityGroupwriteRolw, true)
-		entityGroupAcl.setRoleWriteAccess(entityGroupwriteRolw, true)
+		entityGroupAcl.setRoleReadAccess(entityGroupReadRole, true)
+		entityGroupAcl.setRoleReadAccess(entityGroupwriteRole, true)
+		entityGroupAcl.setRoleWriteAccess(entityGroupwriteRole, true)
 		this.setACL(entityGroupAcl)
 		await this.save()
 
@@ -173,7 +172,6 @@ class EntityGroup extends Parse.Object {
 		if (typeof fieldName !== 'string') {
 			throw new Error('fieldName must be String type')
 		}
-
 		const relation = this.relation(fieldName)
 		relation.add(entityGroup)
 		await this.save()
@@ -194,7 +192,6 @@ class EntityGroup extends Parse.Object {
 
 		const readRole = await this.ensureRole('read', entityGroup.className)
 		const writeRole = await this.ensureRole('write', entityGroup.className)
-
 		const entityGroupAcl = entityGroup.getACL()
 		entityGroupAcl.setRoleReadAccess(readRole, true)
 		// 可以写前提可以读，所以writeRole角色下加上setRoleReadAccess权限
