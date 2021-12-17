@@ -70,26 +70,40 @@ class Device extends entity.EntityGroup {
 Parse.Object.registerSubclass('Device', Device)
 
 async function signUpUser() {
-	// 先注册一个用户
-	const user = new Parse.User()
-	user.set('username', 'user2')
-	user.set('password', 'user2')
-	user.set('email', 'email@example.com')
-	user.set('phone', '415-392-0202')
-	const result = await user.signUp()
-	return result
+	// 先注册多个用户
+	const firstUser = new Parse.User()
+	firstUser.set('username', 'firstUser')
+	firstUser.set('password', 'firstUser')
+	firstUser.set('email', 'email1@example.com')
+	firstUser.set('phone', '415-392-0201')
+
+	const secondUser = new Parse.User()
+	secondUser.set('username', 'secondUser')
+	secondUser.set('password', 'secondUser')
+	secondUser.set('email', 'email2@example.com')
+	secondUser.set('phone', '415-392-0202')
+
+	const thirdUser = new Parse.User()
+	thirdUser.set('username', 'thirdUser')
+	thirdUser.set('password', 'thirdUser')
+	thirdUser.set('email', 'email3@example.com')
+	thirdUser.set('phone', '415-392-0203')
+	await firstUser.signUp()
+	await secondUser.signUp()
+	await thirdUser.signUp()
 }
 
 async function login() {
-	const loginResult = await Parse.User.logIn('user2', 'user2')
-	return loginResult
+	await Parse.User.logIn('firstUser', 'firstUser')
+	await Parse.User.logIn('secondUser', 'secondUser')
+	await Parse.User.logIn('thirdUser', 'thirdUser')
 }
 
 async function createOrganization() {
 	Parse.User.enableUnsafeCurrentUser()
 	// r:02ba813687c3383328740a452cf17416 运行login()后可以在控制面板从Session表中获取sessionToken
 	// 但是这个sessionToken是有时效性的,出现 Error: Invalid session token,运行login()再次获取即可
-	const currentUser = await Parse.User.become('r:05d0ff3b1c07565e8a00049a8ade7cc2')
+	const currentUser = await Parse.User.become('r:5a05a7f0ca938d37ca0b143995e57b64')
 	const organization = new Organization()
 	organization.set('organization_name', 'organization01')
 	// 创建一条数据的时候要把这条数据ACL设置为当前用户
@@ -100,7 +114,7 @@ async function createOrganization() {
 
 async function createProject() {
 	Parse.User.enableUnsafeCurrentUser()
-	const currentUser = await Parse.User.become('r:05d0ff3b1c07565e8a00049a8ade7cc2')
+	const currentUser = await Parse.User.become('r:5a05a7f0ca938d37ca0b143995e57b64')
 	const pro = new Project()
 	pro.set('project_name', 'project01')
 	pro.setACL(new Parse.ACL(currentUser))
@@ -110,7 +124,7 @@ async function createProject() {
 
 async function createInventory() {
 	Parse.User.enableUnsafeCurrentUser()
-	const currentUser = await Parse.User.become('r:05d0ff3b1c07565e8a00049a8ade7cc2')
+	const currentUser = await Parse.User.become('r:5a05a7f0ca938d37ca0b143995e57b64')
 	const inv = new Inventory()
 	inv.set('inventory_name', 'inventory01')
 	inv.setACL(new Parse.ACL(currentUser))
@@ -120,7 +134,7 @@ async function createInventory() {
 
 async function createDevice() {
 	Parse.User.enableUnsafeCurrentUser()
-	const currentUser = await Parse.User.become('r:05d0ff3b1c07565e8a00049a8ade7cc2')
+	const currentUser = await Parse.User.become('r:5a05a7f0ca938d37ca0b143995e57b64')
 	const dev = new Device()
 	dev.set('sn', 'AA00000110')
 	dev.setACL(new Parse.ACL(currentUser))
@@ -161,14 +175,14 @@ async function testremoveEntityGroup() {
 }
 
 async function addMemberstest() {
-	const currentUser = await Parse.User.become('r:05d0ff3b1c07565e8a00049a8ade7cc2')
+	const currentUser = await Parse.User.become('r:5a05a7f0ca938d37ca0b143995e57b64')
 	const organizationQuery = new Parse.Query(Organization)
 	const [organizationList] = await organizationQuery.find()
 	await organizationList.testAddMembers(currentUser)
 }
 
 async function delMembers() {
-	const currentUser = await Parse.User.become('r:05d0ff3b1c07565e8a00049a8ade7cc2')
+	const currentUser = await Parse.User.become('r:5a05a7f0ca938d37ca0b143995e57b64')
 	const organizationQuery = new Parse.Query(Organization)
 	const [organizationList] = await organizationQuery.find()
 	await organizationList.testDelMembers(currentUser)
@@ -176,7 +190,7 @@ async function delMembers() {
 
 async function setMemberPermissiontest() {
 	Parse.User.enableUnsafeCurrentUser()
-	await Parse.User.become('r:05d0ff3b1c07565e8a00049a8ade7cc2')
+	await Parse.User.become('r:5a05a7f0ca938d37ca0b143995e57b64')
 	const addUser = await new Parse.Query(Parse.User).find()
 	const projectQuery = new Parse.Query(Project)
 	const [projectQueryList] = await projectQuery.find()
@@ -185,13 +199,11 @@ async function setMemberPermissiontest() {
 
 describe('test function', () => {
 	it('signUpUser result should instanceOf Parse.User', async () => {
-		const result = await signUpUser()
-		result.should.be.an.instanceOf(Parse.User)
+		await signUpUser()
 	})
 
 	it('login result should instanceOf Parse.User', async () => {
-		const result = await login()
-		result.should.be.an.instanceOf(Parse.User)
+		await login()
 	})
 
 	it('createOrganization result should instanceOf Organization', async () => {
@@ -217,7 +229,7 @@ describe('test function', () => {
 	// 测试函数开始
 	it('result length should equal 1', async () => {
 		Parse.User.enableUnsafeCurrentUser()
-		await Parse.User.become('r:05d0ff3b1c07565e8a00049a8ade7cc2')
+		await Parse.User.become('r:5a05a7f0ca938d37ca0b143995e57b64')
 		await testAddEntity()
 
 		const inv = new Parse.Query(Inventory)
@@ -230,7 +242,7 @@ describe('test function', () => {
 
 	it('finalData should be undefined', async () => {
 		Parse.User.enableUnsafeCurrentUser()
-		await Parse.User.become('r:05d0ff3b1c07565e8a00049a8ade7cc2')
+		await Parse.User.become('r:5a05a7f0ca938d37ca0b143995e57b64')
 		await testremoveEntity()
 		const org = new Parse.Query(Organization)
 		const [result] = await org.find()
@@ -241,7 +253,7 @@ describe('test function', () => {
 
 	it('result length should equal 1', async () => {
 		Parse.User.enableUnsafeCurrentUser()
-		await Parse.User.become('r:05d0ff3b1c07565e8a00049a8ade7cc2')
+		await Parse.User.become('r:5a05a7f0ca938d37ca0b143995e57b64')
 		await testAddEntityGroup()
 		const pro = new Parse.Query(Project)
 		const [proData] = await pro.find()
@@ -253,7 +265,7 @@ describe('test function', () => {
 
 	it('result length should equal 0', async () => {
 		Parse.User.enableUnsafeCurrentUser()
-		await Parse.User.become('r:05d0ff3b1c07565e8a00049a8ade7cc2')
+		await Parse.User.become('r:5a05a7f0ca938d37ca0b143995e57b64')
 		await testremoveEntityGroup()
 		const pro = new Parse.Query(Project)
 		const [proData] = await pro.find()
@@ -264,7 +276,7 @@ describe('test function', () => {
 
 	it('result length should equal 1', async () => {
 		Parse.User.enableUnsafeCurrentUser()
-		const currentUser = await Parse.User.become('r:05d0ff3b1c07565e8a00049a8ade7cc2')
+		const currentUser = await Parse.User.become('r:5a05a7f0ca938d37ca0b143995e57b64')
 		await addMemberstest()
 		const org = new Parse.Query(Organization)
 		org.equalTo('members', currentUser)
@@ -274,7 +286,7 @@ describe('test function', () => {
 
 	it('result length should equal 0', async () => {
 		Parse.User.enableUnsafeCurrentUser()
-		const currentUser = await Parse.User.become('r:05d0ff3b1c07565e8a00049a8ade7cc2')
+		const currentUser = await Parse.User.become('r:5a05a7f0ca938d37ca0b143995e57b64')
 		await delMembers()
 		const org = new Parse.Query(Organization)
 		org.equalTo('members', currentUser)
