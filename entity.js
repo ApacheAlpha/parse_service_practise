@@ -115,7 +115,6 @@ class EntityGroup extends Parse.Object {
 		const relation = this.relation(fieldName)
 		relation.add(entity)
 		await this.save()
-		await this.ensureRole('grant', this.className)
 
 		const readRole = await this.ensureRole('read', entity.className)
 		const writeRole = await this.ensureRole('write', entity.className)
@@ -170,7 +169,6 @@ class EntityGroup extends Parse.Object {
 		const relation = this.relation(fieldName)
 		relation.add(entityGroup)
 		await this.save()
-		await this.ensureRole('grant', this.className)
 
 		// 在这里把entityGroup对象和this的父子关系添加到entityGroup对象的parents字段
 		entityGroup.set('parents', this)
