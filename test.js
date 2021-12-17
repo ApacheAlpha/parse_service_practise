@@ -296,7 +296,7 @@ describe('test function', () => {
 
 	it('result length should equal 0', async () => {
 		Parse.User.enableUnsafeCurrentUser()
-		await Parse.User.become('r:300b233e381f232a52a561099737ff5b')
+		await Parse.User.become('r:5a05a7f0ca938d37ca0b143995e57b64')
 		await setMemberPermissiontest()
 		const pro = new Parse.Query(Project)
 		const result = await pro.find()
