@@ -102,16 +102,15 @@ async function login() {
 	await Parse.User.logIn('secondUser', 'secondUser')
 	await Parse.User.logIn('thirdUser', 'thirdUser')
 }
-
+// r:02ba813687c3383328740a452cf17416 运行login()后可以在控制面板从Session表中获取sessionToken
+// 但是这个sessionToken是有时效性的,出现 Error: Invalid session token,运行login()再次获取即可
 async function createOrganization() {
 	Parse.User.enableUnsafeCurrentUser()
-	// r:02ba813687c3383328740a452cf17416 运行login()后可以在控制面板从Session表中获取sessionToken
-	// 但是这个sessionToken是有时效性的,出现 Error: Invalid session token,运行login()再次获取即可
-	await Parse.User.become('r:5a05a7f0ca938d37ca0b143995e57b64')
+	await Parse.User.become('r:ff46a4657b09d1da9696bb473feb6140')
 	const organization = new Organization()
 	organization.set('organization_name', 'organization01')
 	const organizationResult = await organization.save()
-	// 创建读 写 grant 角色
+	// 创建organization的读、写以及grant 角色
 	await organizationResult.createRole('grant', organizationResult.className)
 	const readRole = await organizationResult.createRole('read', organizationResult.className)
 	const writeRole = await organizationResult.createRole('write', organizationResult.className)
@@ -125,33 +124,70 @@ async function createOrganization() {
 }
 
 async function createProject() {
+	// 创建组织Organization下的实体组，Project
 	Parse.User.enableUnsafeCurrentUser()
-	const currentUser = await Parse.User.become('r:5a05a7f0ca938d37ca0b143995e57b64'
+	await Parse.User.become('r:ff46a4657b09d1da9696bb473feb6140')
 	const pro = new Project()
 	pro.set('project_name', 'project01')
-	pro.setACL(new Parse.ACL(currentUser))
-	const proResult = await pro.save()
-	return proResult
+	const projectResult = await pro.save()
+	const roleQuery = new Parse.Query(Organization)
+	const organizationObj = await roleQuery.first()
+	// 判断有没有organization的grant角色
+	await organizationObj.createRole('grant', organizationObj.className)
+	// 创建Project的读、写角色
+	const readRole = await organizationObj.createRole('read', projectResult.className)
+	const writeRole = await organizationObj.createRole('write', projectResult.className)
+	// 把projectResult的ACl设置为readRole,writeRole
+	const proACL = new Parse.ACL()
+	proACL.setRoleReadAccess(readRole, true)
+	proACL.setRoleWriteAccess(writeRole, true)
+	projectResult.setACL(proACL)
+	await projectResult.save()
+	return projectResult
 }
 
 async function createInventory() {
 	Parse.User.enableUnsafeCurrentUser()
-	const currentUser = await Parse.User.become('r:5a05a7f0ca938d37ca0b143995e57b64')
+	await Parse.User.become('r:ff46a4657b09d1da9696bb473feb6140')
 	const inv = new Inventory()
 	inv.set('inventory_name', 'inventory01')
-	inv.setACL(new Parse.ACL(currentUser))
-	const invResult = await inv.save()
-	return invResult
+	const inventoryResult = await inv.save()
+	const roleQuery = new Parse.Query(Organization)
+	const organizationObj = await roleQuery.first()
+	// 判断有没有organization的grant角色
+	await organizationObj.createRole('grant', organizationObj.className)
+	// 创建inventory的读、写角色
+	const readRole = await organizationObj.createRole('read', inventoryResult.className)
+	const writeRole = await organizationObj.createRole('write', inventoryResult.className)
+	// 把inventoryResult的ACl设置为readRole,writeRole
+	const proACL = new Parse.ACL()
+	proACL.setRoleReadAccess(readRole, true)
+	proACL.setRoleWriteAccess(writeRole, true)
+	inventoryResult.setACL(proACL)
+	await inventoryResult.save()
+	return inventoryResult
 }
 
 async function createDevice() {
 	Parse.User.enableUnsafeCurrentUser()
-	const currentUser = await Parse.User.become('r:5a05a7f0ca938d37ca0b143995e57b64')
+	await Parse.User.become('r:ff46a4657b09d1da9696bb473feb6140')
 	const dev = new Device()
 	dev.set('sn', 'AA00000110')
-	dev.setACL(new Parse.ACL(currentUser))
-	const idevResult = await dev.save()
-	return idevResult
+	const deviceResult = await dev.save()
+	const roleQuery = new Parse.Query(Organization)
+	const organizationObj = await roleQuery.first()
+	// 判断有没有organization的grant角色
+	await organizationObj.createRole('grant', organizationObj.className)
+	// 创建inventory的读、写角色
+	const readRole = await organizationObj.createRole('read', deviceResult.className)
+	const writeRole = await organizationObj.createRole('write', deviceResult.className)
+	// 把deviceResult的ACl设置为readRole,writeRole
+	const devACL = new Parse.ACL()
+	devACL.setRoleReadAccess(readRole, true)
+	devACL.setRoleWriteAccess(writeRole, true)
+	deviceResult.setACL(devACL)
+	await deviceResult.save()
+	return deviceResult
 }
 
 async function testAddEntity() {
@@ -187,14 +223,14 @@ async function testremoveEntityGroup() {
 }
 
 async function addMemberstest() {
-	const currentUser = await Parse.User.become('r:5a05a7f0ca938d37ca0b143995e57b64')
+	const currentUser = await Parse.User.become('r:ff46a4657b09d1da9696bb473feb6140')
 	const organizationQuery = new Parse.Query(Organization)
 	const [organizationList] = await organizationQuery.find()
 	await organizationList.testAddMembers(currentUser)
 }
 
 async function delMembers() {
-	const currentUser = await Parse.User.become('r:5a05a7f0ca938d37ca0b143995e57b64')
+	const currentUser = await Parse.User.become('r:ff46a4657b09d1da9696bb473feb6140')
 	const organizationQuery = new Parse.Query(Organization)
 	const [organizationList] = await organizationQuery.find()
 	await organizationList.testDelMembers(currentUser)
@@ -202,7 +238,7 @@ async function delMembers() {
 
 async function setMemberPermissiontest() {
 	Parse.User.enableUnsafeCurrentUser()
-	await Parse.User.become('r:5a05a7f0ca938d37ca0b143995e57b64')
+	await Parse.User.become('r:ff46a4657b09d1da9696bb473feb6140')
 	const addUser = await new Parse.Query(Parse.User).find()
 	const projectQuery = new Parse.Query(Project)
 	const [projectQueryList] = await projectQuery.find()
@@ -218,31 +254,31 @@ describe('test function', () => {
 	// 	await login()
 	// })
 
-	it('createOrganization result should instanceOf Organization', async () => {
-		const result = await createOrganization()
-		console.log('---result-------result----result------', result)
-		// result.should.be.an.instanceOf(Organization)
-	})
+	// it('createOrganization result should instanceOf Organization', async () => {
+	// 	const result = await createOrganization()
+	// 	// console.log('---result-------result----result------', result)
+	// 	// result.should.be.an.instanceOf(Organization)
+	// })
 
 	// it('createProject result should instanceOf Project', async () => {
 	// 	const result = await createProject()
-	// 	result.should.be.an.instanceOf(Project)
+	// 	// result.should.be.an.instanceOf(Project)
 	// })
 
 	// it('createInventory result should instanceOf Inventory', async () => {
 	// 	const result = await createInventory()
-	// 	result.should.be.an.instanceOf(Inventory)
+	// 	// result.should.be.an.instanceOf(Inventory)
 	// })
 
-	// it('createDevice result should instanceOf Device', async () => {
-	// 	const result = await createDevice()
-	// 	result.should.be.an.instanceOf(Device)
-	// })
+	it('createDevice result should instanceOf Device', async () => {
+		const result = await createDevice()
+		// result.should.be.an.instanceOf(Device)
+	})
 
 	// // 测试函数开始
 	// it('result length should equal 1', async () => {
 	// 	Parse.User.enableUnsafeCurrentUser()
-	// 	await Parse.User.become('r:5a05a7f0ca938d37ca0b143995e57b64')
+	// 	await Parse.User.become('r:ff46a4657b09d1da9696bb473feb6140')
 	// 	await testAddEntity()
 
 	// 	const inv = new Parse.Query(Inventory)
@@ -255,7 +291,7 @@ describe('test function', () => {
 
 	// it('finalData should be undefined', async () => {
 	// 	Parse.User.enableUnsafeCurrentUser()
-	// 	await Parse.User.become('r:5a05a7f0ca938d37ca0b143995e57b64')
+	// 	await Parse.User.become('r:ff46a4657b09d1da9696bb473feb6140')
 	// 	await testremoveEntity()
 	// 	const org = new Parse.Query(Organization)
 	// 	const [result] = await org.find()
@@ -266,7 +302,7 @@ describe('test function', () => {
 
 	// it('result length should equal 1', async () => {
 	// 	Parse.User.enableUnsafeCurrentUser()
-	// 	await Parse.User.become('r:5a05a7f0ca938d37ca0b143995e57b64')
+	// 	await Parse.User.become('r:ff46a4657b09d1da9696bb473feb6140')
 	// 	await testAddEntityGroup()
 	// 	const pro = new Parse.Query(Project)
 	// 	const [proData] = await pro.find()
@@ -278,7 +314,7 @@ describe('test function', () => {
 
 	// it('result length should equal 0', async () => {
 	// 	Parse.User.enableUnsafeCurrentUser()
-	// 	await Parse.User.become('r:5a05a7f0ca938d37ca0b143995e57b64')
+	// 	await Parse.User.become('r:ff46a4657b09d1da9696bb473feb6140')
 	// 	await testremoveEntityGroup()
 	// 	const pro = new Parse.Query(Project)
 	// 	const [proData] = await pro.find()
@@ -289,7 +325,7 @@ describe('test function', () => {
 
 	// it('result length should equal 1', async () => {
 	// 	Parse.User.enableUnsafeCurrentUser()
-	// 	const currentUser = await Parse.User.become('r:5a05a7f0ca938d37ca0b143995e57b64')
+	// 	const currentUser = await Parse.User.become('r:ff46a4657b09d1da9696bb473feb6140')
 	// 	await addMemberstest()
 	// 	const org = new Parse.Query(Organization)
 	// 	org.equalTo('members', currentUser)
@@ -299,7 +335,7 @@ describe('test function', () => {
 
 	// it('result length should equal 0', async () => {
 	// 	Parse.User.enableUnsafeCurrentUser()
-	// 	const currentUser = await Parse.User.become('r:5a05a7f0ca938d37ca0b143995e57b64')
+	// 	const currentUser = await Parse.User.become('r:ff46a4657b09d1da9696bb473feb6140')
 	// 	await delMembers()
 	// 	const org = new Parse.Query(Organization)
 	// 	org.equalTo('members', currentUser)
@@ -309,7 +345,7 @@ describe('test function', () => {
 
 	// it('result length should equal 0', async () => {
 	// 	Parse.User.enableUnsafeCurrentUser()
-	// 	await Parse.User.become('r:5a05a7f0ca938d37ca0b143995e57b64')
+	// 	await Parse.User.become('r:ff46a4657b09d1da9696bb473feb6140')
 	// 	await setMemberPermissiontest()
 	// 	const pro = new Parse.Query(Project)
 	// 	const result = await pro.find()
