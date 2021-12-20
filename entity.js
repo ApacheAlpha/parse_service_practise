@@ -188,7 +188,16 @@ class EntityGroup extends Parse.Object {
 		const relation = this.relation('members')
 		relation.add(user)
 		await this.save()
+		const originalParents = await recursivelyFind(this)
+		const readRoleName = createNewRoleName(originalParents.className, originalParents.id, 'read', this.className)
+		const writeRoleName = createNewRoleName(originalParents.className, originalParents.id, 'write', this.className)
 
+		const readRoleObj = await new Parse.Query(Parse.Role).equalTo('name', readRoleName).first()
+		const writeRoleObj = await new Parse.Query(Parse.Role).equalTo('name', writeRoleName).first()
+		readRoleObj.getUsers().add(user)
+		writeRoleObj.getUsers().add(user)
+		readRoleObj.save()
+		writeRoleObj.save()
 		if (withGrant) {
 			// 如果withGrant为true就把用户添加到grant角色下以及可以读写grant权限
 			const roleObj = new Parse.Query(Parse.Role)
@@ -219,8 +228,8 @@ class EntityGroup extends Parse.Object {
 				roleAcl.setReadAccess(user, false)
 				roleAcl.setWriteAccess(user, false)
 				userRoleList[index].setACL(roleAcl)
-				await userRoleList[index].save()
 			}
+			await userRoleList[index].save()
 		}
 	}
 
@@ -236,9 +245,33 @@ class EntityGroup extends Parse.Object {
 		const roleList = permissions.map((v) => createNewRoleName(originalParents.className,
 			originalParents.id, v, this.className))
 		const result = await roleObj.containedIn('name', roleList).find()
-		for (let index = 0; index < result.length; index += 1) {
-			result[index].getUsers().add(user)
-			await result[index].save()
+		if (permissions.length > 1) {
+			for (let index = 0; index < result.length; index += 1) {
+				result[index].getUsers().add(user)
+				await result[index].save()
+			}
+		} else if (permissions.indexOf('read')) {
+			for (let index = 0; index < result.length; index += 1) {
+				const resultattributes = result[index].attributes
+				if (resultattributes.name.indexOf('read')) {
+					result[index].getUsers().add(user)
+					await result[index].save()
+				} else {
+					result[index].relation().remove(user)
+				}
+				await result[index].save()
+			}
+		} else if (permissions.indexOf('write')) {
+			for (let index = 0; index < result.length; index += 1) {
+				const resultattributes = result[index].attributes
+				if (resultattributes.name.indexOf('write')) {
+					result[index].getUsers().add(user)
+					await result[index].save()
+				} else {
+					result[index].relation().remove(user)
+				}
+				await result[index].save()
+			}
 		}
 		if (withGrant) {
 			await this.changeGrantRole(roleObj, user)
@@ -249,4 +282,5 @@ class EntityGroup extends Parse.Object {
 module.exports = {
 	// 用户要创建自己的业务实体组，可以通过继承这个类
 	EntityGroup,
+	createNewRoleName,
 }
