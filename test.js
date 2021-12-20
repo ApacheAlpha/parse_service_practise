@@ -256,38 +256,68 @@ describe('test function', () => {
 
 	// it('createOrganization result should instanceOf Organization', async () => {
 	// 	const result = await createOrganization()
-	// 	// console.log('---result-------result----result------', result)
-	// 	// result.should.be.an.instanceOf(Organization)
+	// 	result.should.be.an.instanceOf(Organization)
 	// })
 
 	// it('createProject result should instanceOf Project', async () => {
 	// 	const result = await createProject()
-	// 	// result.should.be.an.instanceOf(Project)
+	// 	result.should.be.an.instanceOf(Project)
 	// })
 
 	// it('createInventory result should instanceOf Inventory', async () => {
 	// 	const result = await createInventory()
-	// 	// result.should.be.an.instanceOf(Inventory)
+	// 	result.should.be.an.instanceOf(Inventory)
 	// })
 
-	it('createDevice result should instanceOf Device', async () => {
-		const result = await createDevice()
-		// result.should.be.an.instanceOf(Device)
+	// it('createDevice result should instanceOf Device', async () => {
+	// 	const result = await createDevice()
+	// 	result.should.be.an.instanceOf(Device)
+	// })
+
+	// 测试函数开始
+	describe('test testAddEntity', () => {
+		// it('result length should equal 1', async () => {
+		// 	Parse.User.enableUnsafeCurrentUser()
+		// 	await Parse.User.become('r:ff46a4657b09d1da9696bb473feb6140')
+		// 	await testAddEntity()
+
+		// 	const inv = new Parse.Query(Inventory)
+		// 	const [invData] = await inv.find()
+		// 	const org = new Parse.Query(Organization)
+		// 	org.equalTo('inventory', invData)
+		// 	const result = await org.find()
+		// 	result.should.have.length(1)
+		// })
+
+		it('result length should equal 0', async () => {
+			// sessionToken为  r:4732ff40be336db6840ebba45f424e4d的是一个普通用户未关联任何数据,
+			// 运行查询测试代码，正常情况是什么也查不到
+			Parse.User.enableUnsafeCurrentUser()
+			await Parse.User.become('r:4732ff40be336db6840ebba45f424e4d')
+
+			const inv = new Parse.Query(Inventory)
+			const invData = await inv.first()
+			const org = new Parse.Query(Organization)
+			org.equalTo('inventory', invData)
+			const result = await org.find()
+			result.should.have.length(0)
+		})
+
+		it('result length should equal 0', async () => {
+			// sessionToken为  r:4732ff40be336db6840ebba45f424e4d的是一个普通用户未关联任何数据,
+			// 运行查询测试代码，理想情况是什么也查不到
+			Parse.User.enableUnsafeCurrentUser()
+			await Parse.User.become('r:fc3b3451fd12b7b6c7924c7eb49dac3d')
+
+			const inv = new Parse.Query(Inventory)
+			const invData = await inv.first()
+			const org = new Parse.Query(Organization)
+			// org.equalTo('inventory', invData)
+			const result = await org.first()
+			console.log('----------result----------', org)
+			// result.should.have.length(0)
+		})
 	})
-
-	// // 测试函数开始
-	// it('result length should equal 1', async () => {
-	// 	Parse.User.enableUnsafeCurrentUser()
-	// 	await Parse.User.become('r:ff46a4657b09d1da9696bb473feb6140')
-	// 	await testAddEntity()
-
-	// 	const inv = new Parse.Query(Inventory)
-	// 	const [invData] = await inv.find()
-	// 	const org = new Parse.Query(Organization)
-	// 	org.equalTo('inventory', invData)
-	// 	const result = await org.find()
-	// 	result.should.have.length(1)
-	// })
 
 	// it('finalData should be undefined', async () => {
 	// 	Parse.User.enableUnsafeCurrentUser()
