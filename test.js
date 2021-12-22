@@ -244,242 +244,242 @@ async function setMemberPermissiontest() {
 }
 
 describe('test function', () => {
-	// it('signUpUser', async () => {
-	// 	await signUpUser()
-	// })
+	it('signUpUser', async () => {
+		await signUpUser()
+	})
 
-	// it('createOrganization result should instanceOf Organization', async () => {
-	// 	const result = await createOrganization()
-	// 	result.should.be.an.instanceOf(Organization)
-	// })
+	it('createOrganization result should instanceOf Organization', async () => {
+		const result = await createOrganization()
+		result.should.be.an.instanceOf(Organization)
+	})
 
-	// it('createProject result should instanceOf Project', async () => {
-	// 	const result = await createProject()
-	// 	result.should.be.an.instanceOf(Project)
-	// })
+	it('createProject result should instanceOf Project', async () => {
+		const result = await createProject()
+		result.should.be.an.instanceOf(Project)
+	})
 
-	// it('createInventory result should instanceOf Inventory', async () => {
-	// 	const result = await createInventory()
-	// 	result.should.be.an.instanceOf(Inventory)
-	// })
+	it('createInventory result should instanceOf Inventory', async () => {
+		const result = await createInventory()
+		result.should.be.an.instanceOf(Inventory)
+	})
 
-	// it('createDevice result should instanceOf Device', async () => {
-	// 	const result = await createDevice()
-	// 	result.should.be.an.instanceOf(Device)
-	// })
+	it('createDevice result should instanceOf Device', async () => {
+		const result = await createDevice()
+		result.should.be.an.instanceOf(Device)
+	})
 
 	// 所有数据都是用firstUser账号创建的，所以firstUser就是权限最大的管理员
-	// describe('testAddEntity', () => {
-	// 	it('result length should equal 1', async () => {
-	// 		Parse.User.enableUnsafeCurrentUser()
-	// 		const currentUser = await Parse.User.logIn('firstUser', 'firstUser')
-	// 		await Parse.User.become(currentUser.getSessionToken())
-	// 		await testAddEntity()
+	describe('testAddEntity', () => {
+		it('result length should equal 1', async () => {
+			Parse.User.enableUnsafeCurrentUser()
+			const currentUser = await Parse.User.logIn('firstUser', 'firstUser')
+			await Parse.User.become(currentUser.getSessionToken())
+			await testAddEntity()
 
-	// 		const inv = new Parse.Query(Inventory)
-	// 		const invData = await inv.first()
-	// 		const org = new Parse.Query(Organization)
-	// 		org.equalTo('inventory', invData)
-	// 		const result = await org.find()
-	// 		result.should.have.length(1)
-	// 	})
+			const inv = new Parse.Query(Inventory)
+			const invData = await inv.first()
+			const org = new Parse.Query(Organization)
+			org.equalTo('inventory', invData)
+			const result = await org.find()
+			result.should.have.length(1)
+		})
 
-	// 	it('result length should equal 0', async () => {
-	// 		// secondUser是一个普通用户没有任何权限, 运行查询代码，预期是什么也查不到
-	// 		Parse.User.enableUnsafeCurrentUser()
-	// 		const currentUser = await Parse.User.logIn('secondUser', 'secondUser')
-	// 		const currentUserToken = currentUser.getSessionToken()
-	// 		await Parse.User.become(currentUserToken)
-	// 		const inv = new Parse.Query(Inventory)
-	// 		const invData = await inv.first()
-	// 		const org = new Parse.Query(Organization)
-	// 		org.equalTo('inventory', invData)
-	// 		const result = await org.find()
-	// 		result.should.have.length(0)
-	// 	})
+		it('result length should equal 0', async () => {
+			// secondUser是一个普通用户没有任何权限, 运行查询代码，预期是什么也查不到
+			Parse.User.enableUnsafeCurrentUser()
+			const currentUser = await Parse.User.logIn('secondUser', 'secondUser')
+			const currentUserToken = currentUser.getSessionToken()
+			await Parse.User.become(currentUserToken)
+			const inv = new Parse.Query(Inventory)
+			const invData = await inv.first()
+			const org = new Parse.Query(Organization)
+			org.equalTo('inventory', invData)
+			const result = await org.find()
+			result.should.have.length(0)
+		})
 
-	// 	it('result length should equal 1', async () => {
-	// 		// 把thirdUser角色添加到Organization__#{ Organization.id } __read__Organization
-	// 		// 和Organization__#{ Organization.id }__read__Inventory 角色下
-	// 		// 运行查询测试代码，可以根据inventory对象查询到Organization对象
-	// 		// 证明了testAddEntity函数确实把实体添加到实体组指定字段
-	// 		Parse.User.enableUnsafeCurrentUser()
-	// 		const firstUser = await Parse.User.logIn('firstUser', 'firstUser')
-	// 		const currentUserToken = firstUser.getSessionToken()
-	// 		await Parse.User.become(currentUserToken)
+		it('result length should equal 1', async () => {
+			// 把thirdUser角色添加到Organization__#{ Organization.id } __read__Organization
+			// 和Organization__#{ Organization.id }__read__Inventory 角色下
+			// 运行查询测试代码，可以根据inventory对象查询到Organization对象
+			// 证明了testAddEntity函数确实把实体添加到实体组指定字段
+			Parse.User.enableUnsafeCurrentUser()
+			const firstUser = await Parse.User.logIn('firstUser', 'firstUser')
+			const currentUserToken = firstUser.getSessionToken()
+			await Parse.User.become(currentUserToken)
 
-	// 		const roleQuery = new Parse.Query(Organization)
-	// 		const organizationObj = await roleQuery.first()
-	// 		const orgReadRole = await organizationObj.createRole('read', organizationObj.className)
-	// 		const invQuery = new Parse.Query(Inventory)
-	// 		const inventoryObj = await invQuery.first()
-	// 		const invReadRole = await organizationObj.createRole('read', inventoryObj.className)
+			const roleQuery = new Parse.Query(Organization)
+			const organizationObj = await roleQuery.first()
+			const orgReadRole = await organizationObj.createRole('read', organizationObj.className)
+			const invQuery = new Parse.Query(Inventory)
+			const inventoryObj = await invQuery.first()
+			const invReadRole = await organizationObj.createRole('read', inventoryObj.className)
 
-	// 		const userQuery = new Parse.Query(Parse.User)
-	// 		const thirdUser = await userQuery.equalTo('username', 'thirdUser').first()
+			const userQuery = new Parse.Query(Parse.User)
+			const thirdUser = await userQuery.equalTo('username', 'thirdUser').first()
 
-	// 		orgReadRole.getUsers().add(thirdUser)
-	// 		invReadRole.getUsers().add(thirdUser)
-	// 		await orgReadRole.save()
-	// 		await invReadRole.save()
+			orgReadRole.getUsers().add(thirdUser)
+			invReadRole.getUsers().add(thirdUser)
+			await orgReadRole.save()
+			await invReadRole.save()
 
-	// 		const thirdUserLogin = await Parse.User.logIn('thirdUser', 'thirdUser')
-	// 		const thirdUserToken = thirdUserLogin.getSessionToken()
-	// 		await Parse.User.become(thirdUserToken)
-	// 		const thirdUserInvQuery = new Parse.Query(Inventory)
-	// 		const thirdUserInventoryObj = await thirdUserInvQuery.first()
-	// 		const org = new Parse.Query(Organization)
-	// 		const result = await org.equalTo('inventory', thirdUserInventoryObj).find()
-	// 		result.should.be.length(1)
-	// 	})
-	// })
+			const thirdUserLogin = await Parse.User.logIn('thirdUser', 'thirdUser')
+			const thirdUserToken = thirdUserLogin.getSessionToken()
+			await Parse.User.become(thirdUserToken)
+			const thirdUserInvQuery = new Parse.Query(Inventory)
+			const thirdUserInventoryObj = await thirdUserInvQuery.first()
+			const org = new Parse.Query(Organization)
+			const result = await org.equalTo('inventory', thirdUserInventoryObj).find()
+			result.should.be.length(1)
+		})
+	})
 
-	// describe('testremoveEntity', () => {
-	// 	it('finalData should be undefined', async () => {
-	// 		Parse.User.enableUnsafeCurrentUser()
-	// 		const currentUser = await Parse.User.logIn('firstUser', 'firstUser')
-	// 		const currentUserToken = currentUser.getSessionToken()
-	// 		await Parse.User.become(currentUserToken)
-	// 		await testremoveEntity()
-	// 		const inv = new Parse.Query(Inventory)
-	// 		const invresult = await inv.first()
-	// 		const org = new Parse.Query(Organization)
-	// 		const result = await org.equalTo('inventory', invresult).first()
-	// 		const finalData = (result === undefined)
-	// 		finalData.should.be.true()
-	// 	})
+	describe('testremoveEntity', () => {
+		it('finalData should be undefined', async () => {
+			Parse.User.enableUnsafeCurrentUser()
+			const currentUser = await Parse.User.logIn('firstUser', 'firstUser')
+			const currentUserToken = currentUser.getSessionToken()
+			await Parse.User.become(currentUserToken)
+			await testremoveEntity()
+			const inv = new Parse.Query(Inventory)
+			const invresult = await inv.first()
+			const org = new Parse.Query(Organization)
+			const result = await org.equalTo('inventory', invresult).first()
+			const finalData = (result === undefined)
+			finalData.should.be.true()
+		})
 
-	// 	it('finalData should be undefined', async () => {
-	// 		Parse.User.enableUnsafeCurrentUser()
-	// 		const currentUser = await Parse.User.logIn('thirdUser', 'thirdUser')
-	// 		const currentUserToken = currentUser.getSessionToken()
-	// 		await Parse.User.become(currentUserToken)
-	// 		const inv = new Parse.Query(Inventory)
-	// 		const invresult = await inv.first()
-	// 		const org = new Parse.Query(Organization)
-	// 		const result = await org.equalTo('inventory', invresult).first()
-	// 		const finalData = (result === undefined)
-	// 		finalData.should.be.true()
-	// 	})
-	// })
+		it('finalData should be undefined', async () => {
+			Parse.User.enableUnsafeCurrentUser()
+			const currentUser = await Parse.User.logIn('thirdUser', 'thirdUser')
+			const currentUserToken = currentUser.getSessionToken()
+			await Parse.User.become(currentUserToken)
+			const inv = new Parse.Query(Inventory)
+			const invresult = await inv.first()
+			const org = new Parse.Query(Organization)
+			const result = await org.equalTo('inventory', invresult).first()
+			const finalData = (result === undefined)
+			finalData.should.be.true()
+		})
+	})
 
-	// describe('testAddEntityGroup', () => {
-	// 	it('result length should equal 1', async () => {
-	// 		Parse.User.enableUnsafeCurrentUser()
-	// 		const currentUser = await Parse.User.logIn('firstUser', 'firstUser')
-	// 		await Parse.User.become(currentUser.getSessionToken())
-	// 		await testAddEntityGroup()
-	// 		const pro = new Parse.Query(Project)
-	// 		const proData = await pro.first()
-	// 		const org = new Parse.Query(Organization)
-	// 		org.equalTo('Projects', proData)
-	// 		const result = await org.find()
-	// 		result.should.have.length(1)
-	// 	})
+	describe('testAddEntityGroup', () => {
+		it('result length should equal 1', async () => {
+			Parse.User.enableUnsafeCurrentUser()
+			const currentUser = await Parse.User.logIn('firstUser', 'firstUser')
+			await Parse.User.become(currentUser.getSessionToken())
+			await testAddEntityGroup()
+			const pro = new Parse.Query(Project)
+			const proData = await pro.first()
+			const org = new Parse.Query(Organization)
+			org.equalTo('Projects', proData)
+			const result = await org.find()
+			result.should.have.length(1)
+		})
 
-	// 	it('result length should equal 1', async () => {
-	// 		Parse.User.enableUnsafeCurrentUser()
-	// 		const firstUser = await Parse.User.logIn('firstUser', 'firstUser')
-	// 		const firstUserToken = firstUser.getSessionToken()
-	// 		await Parse.User.become(firstUserToken)
+		it('result length should equal 1', async () => {
+			Parse.User.enableUnsafeCurrentUser()
+			const firstUser = await Parse.User.logIn('firstUser', 'firstUser')
+			const firstUserToken = firstUser.getSessionToken()
+			await Parse.User.become(firstUserToken)
 
-	// 		const proQuery = new Parse.Query(Project)
-	// 		const projectObj = await proQuery.first()
-	// 		const roleQuery = new Parse.Query(Organization)
-	// 		const organizationObj = await roleQuery.first()
-	// 		const proRole = await organizationObj.createRole('read', projectObj.className)
-	// 		const userQuery = new Parse.Query(Parse.User)
-	// 		const thirdUser = await userQuery.equalTo('username', 'thirdUser').first()
-	// 		proRole.getUsers().add(thirdUser)
-	// 		await proRole.save()
-	// 		const currentUser = await Parse.User.logIn('thirdUser', 'thirdUser')
-	// 		await Parse.User.become(currentUser.getSessionToken())
-	// 		const pro = new Parse.Query(Project)
-	// 		const proData = await pro.first()
-	// 		const org = new Parse.Query(Organization)
-	// 		org.equalTo('Projects', proData)
-	// 		const result = await org.find()
-	// 		result.should.have.length(1)
-	// 	})
-	// })
+			const proQuery = new Parse.Query(Project)
+			const projectObj = await proQuery.first()
+			const roleQuery = new Parse.Query(Organization)
+			const organizationObj = await roleQuery.first()
+			const proRole = await organizationObj.createRole('read', projectObj.className)
+			const userQuery = new Parse.Query(Parse.User)
+			const thirdUser = await userQuery.equalTo('username', 'thirdUser').first()
+			proRole.getUsers().add(thirdUser)
+			await proRole.save()
+			const currentUser = await Parse.User.logIn('thirdUser', 'thirdUser')
+			await Parse.User.become(currentUser.getSessionToken())
+			const pro = new Parse.Query(Project)
+			const proData = await pro.first()
+			const org = new Parse.Query(Organization)
+			org.equalTo('Projects', proData)
+			const result = await org.find()
+			result.should.have.length(1)
+		})
+	})
 
-	// describe('testremoveEntityGroup', () => {
-	// 	it('result length should equal 0', async () => {
-	// 		Parse.User.enableUnsafeCurrentUser()
-	// 		const currentUser = await Parse.User.logIn('firstUser', 'firstUser')
-	// 		const currentUserToken = currentUser.getSessionToken()
-	// 		await Parse.User.become(currentUserToken)
-	// 		await testremoveEntityGroup()
-	// 		const pro = new Parse.Query(Project)
-	// 		const proData = await pro.first()
-	// 		const roleQuery = new Parse.Query(Organization)
-	// 		roleQuery.equalTo('Projects', proData)
-	// 		const data = await roleQuery.first()
-	// 		const finalData = (data === undefined)
-	// 		finalData.should.be.true()
-	// 	})
-	// })
+	describe('testremoveEntityGroup', () => {
+		it('result length should equal 0', async () => {
+			Parse.User.enableUnsafeCurrentUser()
+			const currentUser = await Parse.User.logIn('firstUser', 'firstUser')
+			const currentUserToken = currentUser.getSessionToken()
+			await Parse.User.become(currentUserToken)
+			await testremoveEntityGroup()
+			const pro = new Parse.Query(Project)
+			const proData = await pro.first()
+			const roleQuery = new Parse.Query(Organization)
+			roleQuery.equalTo('Projects', proData)
+			const data = await roleQuery.first()
+			const finalData = (data === undefined)
+			finalData.should.be.true()
+		})
+	})
 
-	// describe('addMemberstest', () => {
-	// 	it('result length should equal 1', async () => {
-	// 		Parse.User.enableUnsafeCurrentUser()
-	// 		const currentUser = await Parse.User.logIn('firstUser', 'firstUser')
-	// 		const currentUserToken = currentUser.getSessionToken()
-	// 		await Parse.User.become(currentUserToken)
-	// 		await addMemberstest()
-	// 		const secondUser = await new Parse.Query(Parse.User).equalTo('username', 'secondUser').first()
-	// 		const org = new Parse.Query(Organization)
-	// 		org.equalTo('members', secondUser)
-	// 		const result = await org.find()
-	// 		result.should.have.length(1)
-	// 	})
+	describe('addMemberstest', () => {
+		it('result length should equal 1', async () => {
+			Parse.User.enableUnsafeCurrentUser()
+			const currentUser = await Parse.User.logIn('firstUser', 'firstUser')
+			const currentUserToken = currentUser.getSessionToken()
+			await Parse.User.become(currentUserToken)
+			await addMemberstest()
+			const secondUser = await new Parse.Query(Parse.User).equalTo('username', 'secondUser').first()
+			const org = new Parse.Query(Organization)
+			org.equalTo('members', secondUser)
+			const result = await org.find()
+			result.should.have.length(1)
+		})
 
-	// 	it('result length should equal 1', async () => {
-	// 		Parse.User.enableUnsafeCurrentUser()
-	// 		const currentUser = await Parse.User.logIn('secondUser', 'secondUser')
-	// 		const currentUserToken = currentUser.getSessionToken()
-	// 		await Parse.User.become(currentUserToken)
-	// 		const org = new Parse.Query(Organization)
-	// 		const result = await org.first()
-	// 		// 原始的organization_name为'organization01',现在更改为changrForOrganization01
-	// 		result.set('organization_name', 'changrForOrganization01')
-	// 		await result.save()
-	// 		const changeDataResult = await org.equalTo('organization_name',
-	// 			'changrForOrganization01').find()
-	// 		changeDataResult.should.have.length(1)
-	// 	})
-	// })
+		it('result length should equal 1', async () => {
+			Parse.User.enableUnsafeCurrentUser()
+			const currentUser = await Parse.User.logIn('secondUser', 'secondUser')
+			const currentUserToken = currentUser.getSessionToken()
+			await Parse.User.become(currentUserToken)
+			const org = new Parse.Query(Organization)
+			const result = await org.first()
+			// 原始的organization_name为'organization01',现在更改为changrForOrganization01
+			result.set('organization_name', 'changrForOrganization01')
+			await result.save()
+			const changeDataResult = await org.equalTo('organization_name',
+				'changrForOrganization01').find()
+			changeDataResult.should.have.length(1)
+		})
+	})
 
-	// describe('delMembers', () => {
-	// 	it('result length should equal 0', async () => {
-	// 		Parse.User.enableUnsafeCurrentUser()
-	// 		const currentUser = await Parse.User.logIn('firstUser', 'firstUser')
-	// 		const currentUserToken = currentUser.getSessionToken()
-	// 		await Parse.User.become(currentUserToken)
-	// 		await delMembers()
-	// 		const org = new Parse.Query(Organization)
-	// 		org.equalTo('members', currentUser)
-	// 		const result = await org.find()
-	// 		result.should.have.length(0)
-	// 	})
+	describe('delMembers', () => {
+		it('result length should equal 0', async () => {
+			Parse.User.enableUnsafeCurrentUser()
+			const currentUser = await Parse.User.logIn('firstUser', 'firstUser')
+			const currentUserToken = currentUser.getSessionToken()
+			await Parse.User.become(currentUserToken)
+			await delMembers()
+			const org = new Parse.Query(Organization)
+			org.equalTo('members', currentUser)
+			const result = await org.find()
+			result.should.have.length(0)
+		})
 
-	// 	it('result length should equal 0', async () => {
-	// 		Parse.User.enableUnsafeCurrentUser()
-	// 		const currentUser = await Parse.User.logIn('secondUser', 'secondUser')
-	// 		const currentUserToken = currentUser.getSessionToken()
-	// 		await Parse.User.become(currentUserToken)
-	// 		const org = new Parse.Query(Organization)
-	// 		const result = await org.find()
-	// 		result.should.have.length(0)
-	// 	})
-	// })
+		it('result length should equal 0', async () => {
+			Parse.User.enableUnsafeCurrentUser()
+			const currentUser = await Parse.User.logIn('secondUser', 'secondUser')
+			const currentUserToken = currentUser.getSessionToken()
+			await Parse.User.become(currentUserToken)
+			const org = new Parse.Query(Organization)
+			const result = await org.find()
+			result.should.have.length(0)
+		})
+	})
 
-	// describe('setMemberPermissiontest', () => {
-	// 	it('result length should equal 0', async () => {
-	// 		await setMemberPermissiontest()
-	// 		const pro = new Parse.Query(Project)
-	// 		const result = await pro.find()
-	// 		result.length.should.be.oneOf([0, 1])
-	// 	})
-	// })
+	describe('setMemberPermissiontest', () => {
+		it('result length should equal 0', async () => {
+			await setMemberPermissiontest()
+			const pro = new Parse.Query(Project)
+			const result = await pro.find()
+			result.length.should.be.oneOf([0, 1])
+		})
+	})
 })
