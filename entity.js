@@ -104,8 +104,7 @@ class EntityGroup extends Parse.Object {
 			throw new Error('fieldName must be String type')
 		}
 		// 建立实体与实体组的关系
-		const relation = this.relation(fieldName)
-		relation.add(entity)
+		this.relation(fieldName).add(entity)
 		await this.save()
 		// 记录实体的父实体组
 		entity.set('parent', this)
@@ -121,8 +120,7 @@ class EntityGroup extends Parse.Object {
 		if (typeof fieldName !== 'string') {
 			throw new Error('fieldName must be String type')
 		}
-		const relation = this.relation(fieldName)
-		relation.remove(entity)
+		this.relation(fieldName).remove(entity)
 		// 清空父实体信息
 		entity.unset('parent')
 		await entity.save()
@@ -138,8 +136,7 @@ class EntityGroup extends Parse.Object {
 		if (typeof fieldName !== 'string') {
 			throw new Error('fieldName must be String type')
 		}
-		const relation = this.relation(fieldName)
-		relation.add(entityGroup)
+		this.relation(fieldName).add(entityGroup)
 		await this.save()
 		entityGroup.set('parent', this)
 		await entityGroup.save()
