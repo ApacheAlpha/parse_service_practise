@@ -45,8 +45,8 @@ class EntityGroup extends Parse.Object {
 		return ['read', 'write']
 	}
 
-	async setACLAndAddUserToRole(roleName, permission) {
-		const grantRoleName = createNewRoleName(this.className, this.id, 'grant')
+	async setACLAndAddUserToRole(parent, roleName, permission) {
+		const grantRoleName = createNewRoleName(parent.className, parent.id, 'grant')
 		const currentUser = Parse.User.current()
 		const roleACL = new Parse.ACL()
 		roleACL.setRoleReadAccess(grantRoleName, true)
@@ -70,8 +70,8 @@ class EntityGroup extends Parse.Object {
 		const grantRole = createNewRoleName(parent.className, parent.id, 'grant')
 		let grantRoleObj
 		grantRoleObj = await new Parse.Query(Parse.Role).equalTo('name', grantRole).first()
-		if (!grantRole) {
-			grantRoleObj = await this.setACLAndAddUserToRole(null, 'grant')
+		if (!grantRoleObj) {
+			grantRoleObj = await this.setACLAndAddUserToRole(parent, null, 'grant')
 		}
 		return grantRoleObj
 	}
@@ -87,7 +87,8 @@ class EntityGroup extends Parse.Object {
 		Role = await new Parse.Query(Parse.Role).equalTo('name', roleName).first()
 		// 当传入的permission 是read或者write时且roleName不存在的时候就自动创建再返回该角色名对象,同时把当前用户的信息添加到该角色
 		if (!Role) {
-			Role = await this.setACLAndAddUserToRole(roleName)
+			const parent = await recursivelyFind(this)
+			Role = await this.setACLAndAddUserToRole(parent, roleName)
 			return Role
 		}
 		return Role

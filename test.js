@@ -94,12 +94,9 @@ async function signUpUser() {
 	await thirdUser.signUp()
 }
 
-async function createOrganization() {
-	Parse.User.enableUnsafeCurrentUser()
-	const currentUser = await Parse.User.logIn('firstUser', 'firstUser')
-	await Parse.User.become(currentUser.getSessionToken())
+async function createOrganization(organizationName) {
 	const organization = new Organization()
-	organization.set('organization_name', 'organization01')
+	organization.set('organization_name', organizationName)
 	const organizationResult = await organization.save()
 	// 创建organization的读、写以及grant角色
 	await organizationResult.createRole('grant', organizationResult.className)
@@ -114,17 +111,12 @@ async function createOrganization() {
 	return organizationResult
 }
 
-async function createProject() {
-	// 创建组织Organization下的实体组，Project
-	Parse.User.enableUnsafeCurrentUser()
-	const currentUser = await Parse.User.logIn('firstUser', 'firstUser')
-	const currentUserToken = currentUser.getSessionToken()
-	await Parse.User.become(currentUserToken)
+async function createProject(organizationName, projectName) {
 	const pro = new Project()
-	pro.set('project_name', 'project01')
+	pro.set('project_name', projectName)
 	const projectResult = await pro.save()
 	const roleQuery = new Parse.Query(Organization)
-	const organizationObj = await roleQuery.first()
+	const organizationObj = await roleQuery.equalTo('organization_name', organizationName).first()
 	// 判断有没有organization的grant角色
 	await organizationObj.createRole('grant', organizationObj.className)
 	// 创建Project的读、写角色
@@ -139,16 +131,12 @@ async function createProject() {
 	return projectResult
 }
 
-async function createInventory() {
-	Parse.User.enableUnsafeCurrentUser()
-	const currentUser = await Parse.User.logIn('firstUser', 'firstUser')
-	const currentUserToken = currentUser.getSessionToken()
-	await Parse.User.become(currentUserToken)
+async function createInventory(organizationName, inventoryName) {
 	const inv = new Inventory()
-	inv.set('inventory_name', 'inventory01')
+	inv.set('inventory_name', inventoryName)
 	const inventoryResult = await inv.save()
 	const roleQuery = new Parse.Query(Organization)
-	const organizationObj = await roleQuery.first()
+	const organizationObj = await roleQuery.equalTo('organization_name', organizationName).first()
 	// 判断有没有organization的grant角色
 	await organizationObj.createRole('grant', organizationObj.className)
 	// 创建inventory的读、写角色
@@ -163,16 +151,13 @@ async function createInventory() {
 	return inventoryResult
 }
 
-async function createDevice() {
+async function createDevice(organizationName, deviceName) {
 	Parse.User.enableUnsafeCurrentUser()
-	const currentUser = await Parse.User.logIn('firstUser', 'firstUser')
-	const currentUserToken = currentUser.getSessionToken()
-	await Parse.User.become(currentUserToken)
 	const dev = new Device()
-	dev.set('sn', 'AA00000110')
+	dev.set('device_name', deviceName)
 	const deviceResult = await dev.save()
 	const roleQuery = new Parse.Query(Organization)
-	const organizationObj = await roleQuery.first()
+	const organizationObj = await roleQuery.equalTo('organization_name', organizationName).first()
 	// 判断有没有organization的grant角色
 	await organizationObj.createRole('grant', organizationObj.className)
 	// 创建inventory的读、写角色
@@ -248,24 +233,39 @@ describe('test function', () => {
 		await signUpUser()
 	})
 
-	it('createOrganization result should instanceOf Organization', async () => {
-		const result = await createOrganization()
-		result.should.be.an.instanceOf(Organization)
-	})
+	describe('Create table', async () => {
+		beforeEach(async () => {
+			Parse.User.enableUnsafeCurrentUser()
+			const currentUser = await Parse.User.logIn('firstUser', 'firstUser')
+			await Parse.User.become(currentUser.getSessionToken())
+		})
 
-	it('createProject result should instanceOf Project', async () => {
-		const result = await createProject()
-		result.should.be.an.instanceOf(Project)
-	})
+		it('createOrganization result should instanceOf Organization', async () => {
+			const organizationName = 'organizationName01'
+			const result = await createOrganization(organizationName)
+			result.should.be.an.instanceOf(Organization)
+		})
 
-	it('createInventory result should instanceOf Inventory', async () => {
-		const result = await createInventory()
-		result.should.be.an.instanceOf(Inventory)
-	})
+		it('createProject result should instanceOf Project', async () => {
+			const projectName = 'projectName01'
+			const organizationName = 'organizationName01'
+			const result = await createProject(organizationName, projectName)
+			result.should.be.an.instanceOf(Project)
+		})
 
-	it('createDevice result should instanceOf Device', async () => {
-		const result = await createDevice()
-		result.should.be.an.instanceOf(Device)
+		it('createInventory result should instanceOf Inventory', async () => {
+			const organizationName = 'organizationName01'
+			const inventoryName = 'inventoryName01'
+			const result = await createInventory(organizationName, inventoryName)
+			result.should.be.an.instanceOf(Inventory)
+		})
+
+		it('createDevice result should instanceOf Device', async () => {
+			const organizationName = 'organizationName01'
+			const deviceName = 'deviceName01'
+			const result = await createDevice(organizationName, deviceName)
+			result.should.be.an.instanceOf(Device)
+		})
 	})
 
 	// 所有数据都是用firstUser账号创建的，所以firstUser就是权限最大的管理员
