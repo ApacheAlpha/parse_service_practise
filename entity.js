@@ -21,15 +21,15 @@ async function recursivelyDelete(realtionResult) {
 }
 
 async function recursivelyFind(realtionResult) {
-	const getParent = realtionResult.get('parents')
+	const getParent = realtionResult.get('parent')
 	if (!getParent) {
 		return realtionResult
 	}
 	const queryResult = await new Parse.Query(getParent.className).equalTo('id', getParent.className.id).first()
-	if (!queryResult.get('parents')) {
+	if (!queryResult.get('parent')) {
 		return queryResult
 	}
-	const result = await recursivelyFind(queryResult.get('parents'))
+	const result = await recursivelyFind(queryResult.get('parent'))
 	return result
 }
 // 创建角色名称的规则 实体组名称__实体组id__权限名称__实体名
