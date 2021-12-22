@@ -4,10 +4,10 @@ const _ = require('lodash')
 const { Parse } = require('./parse')
 
 async function recursivelyDelete(realtionResult) {
-	const relationObj = realtionResult.attributes
-	const keyList = Object.keys(relationObj)
+	const relationattributes = realtionResult.attributes
+	const keyList = Object.keys(relationattributes)
 	for (let i = 0; i < keyList.length; i += 1) {
-		if (relationObj[keyList[i]] instanceof Parse.Relation) {
+		if (relationattributes[keyList[i]] instanceof Parse.Relation) {
 			const newRelation = realtionResult.relation(keyList[i])
 			const newRealtionResult = await newRelation.query().find()
 			for (let j = 0; j < newRealtionResult.length; j += 1) {
@@ -29,7 +29,7 @@ async function recursivelyFind(realtionResult) {
 	if (!queryResult.get('parent')) {
 		return queryResult
 	}
-	const result = await recursivelyFind(queryResult.get('parent'))
+	const result = await recursivelyFind(queryResult)
 	return result
 }
 // 创建角色名称的规则 实体组名称__实体组id__权限名称__实体名
@@ -66,7 +66,8 @@ class EntityGroup extends Parse.Object {
 
 	async ensurePermissionGrant() {
 		// ensurePermissionGrant 只用来验证grant权限是否存在，不存在则自动创建,创建的时候把当前用户添加到grant角色
-		const grantRole = createNewRoleName(this.className, this.id, 'grant')
+		const parent = await recursivelyFind(this)
+		const grantRole = createNewRoleName(parent.className, parent.id, 'grant')
 		let grantRoleObj
 		grantRoleObj = await new Parse.Query(Parse.Role).equalTo('name', grantRole).first()
 		if (!grantRole) {
@@ -158,7 +159,7 @@ class EntityGroup extends Parse.Object {
 	}
 
 	async changeGrantRoleAcl(user) {
-		const grantRole = this.ensureRole('grant', this.className)
+		const grantRole = this.ensureRole('grant')
 		const grantACL = grantRole.getACL()
 		grantACL.setReadAccess(user, true)
 		grantACL.setWriteAccess(user, true)
