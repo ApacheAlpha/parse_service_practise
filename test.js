@@ -268,6 +268,40 @@ describe('test function', () => {
 		})
 	})
 
+	describe('test data isolation', async () => {
+		// 在之前我们通过firstUser创建了组织：organizationName01以及组织下的project projectName01
+		// 现在我们用secondUser创建组织：organizationName02以及组织下的project projectName02
+		it('create organization and project', async () => {
+			Parse.User.enableUnsafeCurrentUser()
+			const currentUser = await Parse.User.logIn('secondUser', 'secondUser')
+			await Parse.User.become(currentUser.getSessionToken())
+			await createOrganization('organizationName02')
+			await createProject('organizationName02', 'projectName02')
+		})
+
+		// 根据我们设定的规则，两个用户之间的数据是无法相互读取的。以下两个测试用例通过就证明规则有效
+		it('findResult01 length should be 0', async () => {
+			Parse.User.enableUnsafeCurrentUser()
+			const secondUser = await Parse.User.logIn('secondUser', 'secondUser')
+			await Parse.User.become(secondUser.getSessionToken())
+			// 登录secondUser来查找organizationName01的信息
+			const findOrganization = await new Parse.Query(Organization).equalTo('organization_name', 'organizationName01').find()
+			const findproject = await new Parse.Query(Project).equalTo('project_name', 'projectName01').find()
+			findOrganization.should.be.length(0)
+			findproject.should.be.length(0)
+		})
+		it('findResult01 length should be 1', async () => {
+			Parse.User.enableUnsafeCurrentUser()
+			const firstUser = await Parse.User.logIn('firstUser', 'firstUser')
+			await Parse.User.become(firstUser.getSessionToken())
+			// 登录firstUser来查找organizationName02的信息
+			const findOrganization = await new Parse.Query(Organization).equalTo('organization_name', 'organizationName02').find()
+			const findproject = await new Parse.Query(Project).equalTo('project_name', 'projectName02').find()
+			findOrganization.should.be.length(0)
+			findproject.should.be.length(0)
+		})
+	})
+
 	// 所有数据都是用firstUser账号创建的，所以firstUser就是权限最大的管理员
 	describe('testAddEntity', () => {
 		it('result length should equal 1', async () => {
