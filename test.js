@@ -48,6 +48,10 @@ class Project extends entity.EntityGroup {
 		return super('Project')
 	}
 
+	createRole(permission, className) {
+		return this.ensureRole(permission, className)
+	}
+
 	addDevice(device) {
 		return this.addEntity('devices', device)
 	}
@@ -151,18 +155,15 @@ async function createInventory(organizationName, inventoryName) {
 	return inventoryResult
 }
 
-async function createDevice(organizationName, deviceName) {
-	Parse.User.enableUnsafeCurrentUser()
+async function createDevice(projectName, deviceName) {
 	const dev = new Device()
 	dev.set('device_name', deviceName)
 	const deviceResult = await dev.save()
-	const roleQuery = new Parse.Query(Organization)
-	const organizationObj = await roleQuery.equalTo('organization_name', organizationName).first()
-	// 判断有没有organization的grant角色
-	await organizationObj.createRole('grant', organizationObj.className)
+	const roleQuery = new Parse.Query(Project)
+	const projectObj = await roleQuery.equalTo('project_name', projectName).first()
 	// 创建inventory的读、写角色
-	const readRole = await organizationObj.createRole('read', deviceResult.className)
-	const writeRole = await organizationObj.createRole('write', deviceResult.className)
+	const readRole = await projectObj.createRole('read', deviceResult.className)
+	const writeRole = await projectObj.createRole('write', deviceResult.className)
 	// 把deviceResult的ACl设置为readRole,writeRole
 	const devACL = new Parse.ACL()
 	devACL.setRoleReadAccess(readRole, true)
@@ -261,9 +262,9 @@ describe('test function', () => {
 		})
 
 		it('createDevice result should instanceOf Device', async () => {
-			const organizationName = 'organizationName01'
+			const projectName = 'projectName01'
 			const deviceName = 'deviceName01'
-			const result = await createDevice(organizationName, deviceName)
+			const result = await createDevice(projectName, deviceName)
 			result.should.be.an.instanceOf(Device)
 		})
 	})

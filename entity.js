@@ -142,7 +142,7 @@ class EntityGroup extends Parse.Object {
 		await entityGroup.save()
 	}
 
-	// 把实体组从当前实体组fieldName数组字段里删除，并设置好权限规则 实体组下的资源也会被删除
+	// 把实体组从当前实体组fieldName数组字段里删除，并设置好权限规则实体组下的资源也会被删除
 	// fieldName：String，字段名 entityGroup：EntityGroup，实体组
 	async removeEntityGroup(fieldName, entityGroup) {
 		if (!(entityGroup instanceof EntityGroup)) {
