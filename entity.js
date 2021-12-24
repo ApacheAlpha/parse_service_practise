@@ -8,8 +8,7 @@ async function recursivelyDelete(realtionResult) {
 	const keyList = Object.keys(relationattributes)
 	for (let i = 0; i < keyList.length; i += 1) {
 		if (relationattributes[keyList[i]] instanceof Parse.Relation) {
-			const newRelation = realtionResult.relation(keyList[i])
-			const newRealtionResult = await newRelation.query().find()
+			const newRealtionResult = await realtionResult.relation(keyList[i]).query().find()
 			for (let j = 0; j < newRealtionResult.length; j += 1) {
 				await recursivelyDelete(newRealtionResult[j])
 			}
@@ -156,7 +155,7 @@ class EntityGroup extends Parse.Object {
 		await recursivelyDelete(entityGroup)
 	}
 
-	async changeGrantRoleAcl(user) {
+	async addUserToGrantRole(user) {
 		const grantRole = this.ensureRole('grant')
 		const grantACL = grantRole.getACL()
 		grantACL.setReadAccess(user, true)
@@ -184,7 +183,7 @@ class EntityGroup extends Parse.Object {
 			await RoleList[index].save()
 		}
 		if (withGrant && !originalParent) {
-			await this.changeGrantRoleAcl(user)
+			await this.addUserToGrantRole(user)
 		}
 	}
 
@@ -251,7 +250,7 @@ class EntityGroup extends Parse.Object {
 			await this.addUserToRole(xorWithResult, user)
 		}
 		if (withGrant && !originalParent) {
-			await this.changeGrantRoleAcl(user)
+			await this.addUserToGrantRole(user)
 		}
 	}
 }
