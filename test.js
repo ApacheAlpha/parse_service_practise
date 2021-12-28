@@ -102,82 +102,33 @@ async function createOrganization(organizationName) {
 	const organization = new Organization()
 	organization.set('organization_name', organizationName)
 	const organizationResult = await organization.save()
-	// 创建organization的读、写以及grant角色
-	await organizationResult.createRole('grant', organizationResult.className)
-	const readRole = await organizationResult.createRole('read', organizationResult.className)
-	const writeRole = await organizationResult.createRole('write', organizationResult.className)
-	// 把organizationResult的ACl设置为readRole,writeRole
-	const orgACL = new Parse.ACL()
-	orgACL.setRoleReadAccess(readRole, true)
-	orgACL.setRoleWriteAccess(writeRole, true)
-	organizationResult.setACL(orgACL)
-	await organizationResult.save()
 	return organizationResult
 }
 
-async function createProject(organizationName, projectName) {
+async function createProject(projectName) {
 	const pro = new Project()
 	pro.set('project_name', projectName)
 	const projectResult = await pro.save()
-	const roleQuery = new Parse.Query(Organization)
-	const organizationObj = await roleQuery.equalTo('organization_name', organizationName).first()
-	// 判断有没有organization的grant角色
-	await organizationObj.createRole('grant', organizationObj.className)
-	// 创建Project的读、写角色
-	const readRole = await organizationObj.createRole('read', projectResult.className)
-	const writeRole = await organizationObj.createRole('write', projectResult.className)
-	// 把projectResult的ACl设置为readRole,writeRole
-	const proACL = new Parse.ACL()
-	proACL.setRoleReadAccess(readRole, true)
-	proACL.setRoleWriteAccess(writeRole, true)
-	projectResult.setACL(proACL)
-	await projectResult.save()
 	return projectResult
 }
 
-async function createInventory(organizationName, inventoryName) {
+async function createInventory(inventoryName) {
 	const inv = new Inventory()
 	inv.set('inventory_name', inventoryName)
 	const inventoryResult = await inv.save()
-	const roleQuery = new Parse.Query(Organization)
-	const organizationObj = await roleQuery.equalTo('organization_name', organizationName).first()
-	// 判断有没有organization的grant角色
-	await organizationObj.createRole('grant', organizationObj.className)
-	// 创建inventory的读、写角色
-	const readRole = await organizationObj.createRole('read', inventoryResult.className)
-	const writeRole = await organizationObj.createRole('write', inventoryResult.className)
-	// 把inventoryResult的ACl设置为readRole,writeRole
-	const proACL = new Parse.ACL()
-	proACL.setRoleReadAccess(readRole, true)
-	proACL.setRoleWriteAccess(writeRole, true)
-	inventoryResult.setACL(proACL)
-	await inventoryResult.save()
 	return inventoryResult
 }
 
-async function createDevice(projectName, deviceName) {
+async function createDevice(deviceName) {
 	const dev = new Device()
 	dev.set('device_name', deviceName)
 	const deviceResult = await dev.save()
-	const roleQuery = new Parse.Query(Project)
-	const projectObj = await roleQuery.equalTo('project_name', projectName).first()
-	// 创建inventory的读、写角色
-	const readRole = await projectObj.createRole('read', deviceResult.className)
-	const writeRole = await projectObj.createRole('write', deviceResult.className)
-	// 把deviceResult的ACl设置为readRole,writeRole
-	const devACL = new Parse.ACL()
-	devACL.setRoleReadAccess(readRole, true)
-	devACL.setRoleWriteAccess(writeRole, true)
-	deviceResult.setACL(devACL)
-	await deviceResult.save()
 	return deviceResult
 }
 
 async function testAddEntity() {
-	const invQuery = new Parse.Query(Inventory)
-	const invQueryList = await invQuery.first()
-	const organizationQuery = new Parse.Query(Organization)
-	const organizationList = await organizationQuery.first()
+	const invQueryList = await new Parse.Query(Inventory).equalTo('inventory_name', 'inventoryName01').first()
+	const organizationList = await new Parse.Query(Organization).equalTo('organization_name', 'organizationName01').first()
 	await organizationList.addEntityTest(invQueryList)
 }
 
@@ -190,18 +141,14 @@ async function testremoveEntity() {
 }
 
 async function testAddEntityGroup() {
-	const ProjectQuery = new Parse.Query(Project)
-	const result = await ProjectQuery.first()
-	const organizationQuery = new Parse.Query(Organization)
-	const organizationList = await organizationQuery.first()
+	const result = await new Parse.Query(Project).equalTo('project_name', 'projectName01').first()
+	const organizationList = await new Parse.Query(Organization).equalTo('organization_name', 'organizationName01').first()
 	await organizationList.addProject(result)
 }
 
 async function testremoveEntityGroup() {
-	const org = new Parse.Query(Organization)
-	const result = await org.first()
-	const pro = new Parse.Query(Project)
-	const data = await pro.first()
+	const result = await new Parse.Query(Organization).equalTo('organization_name', 'organizationName01').first()
+	const data = await new Parse.Query(Project).equalTo('project_name', 'projectName01').first()
 	await result.removeEntityGroupTest(data)
 }
 
@@ -213,8 +160,7 @@ async function addMemberstest() {
 
 async function delMembers() {
 	const secondUser = await new Parse.Query(Parse.User).equalTo('username', 'secondUser').first()
-	const organizationQuery = new Parse.Query(Organization)
-	const organizationList = await organizationQuery.first()
+	const organizationList = await new Parse.Query(Organization).equalTo('organization_name', 'changrForOrganization01').first()
 	await organizationList.testDelMembers(secondUser)
 }
 
@@ -242,29 +188,22 @@ describe('test function', () => {
 		})
 
 		it('createOrganization result should instanceOf Organization', async () => {
-			const organizationName = 'organizationName01'
-			const result = await createOrganization(organizationName)
+			const result = await createOrganization('organizationName01')
 			result.should.be.an.instanceOf(Organization)
 		})
 
 		it('createProject result should instanceOf Project', async () => {
-			const projectName = 'projectName01'
-			const organizationName = 'organizationName01'
-			const result = await createProject(organizationName, projectName)
+			const result = await createProject('projectName01')
 			result.should.be.an.instanceOf(Project)
 		})
 
 		it('createInventory result should instanceOf Inventory', async () => {
-			const organizationName = 'organizationName01'
-			const inventoryName = 'inventoryName01'
-			const result = await createInventory(organizationName, inventoryName)
+			const result = await createInventory('inventoryName01')
 			result.should.be.an.instanceOf(Inventory)
 		})
 
 		it('createDevice result should instanceOf Device', async () => {
-			const projectName = 'projectName01'
-			const deviceName = 'deviceName01'
-			const result = await createDevice(projectName, deviceName)
+			const result = await createDevice('deviceName01')
 			result.should.be.an.instanceOf(Device)
 		})
 	})
@@ -310,12 +249,9 @@ describe('test function', () => {
 			const currentUser = await Parse.User.logIn('firstUser', 'firstUser')
 			await Parse.User.become(currentUser.getSessionToken())
 			await testAddEntity()
-
-			const inv = new Parse.Query(Inventory)
-			const invData = await inv.first()
-			const org = new Parse.Query(Organization)
-			org.equalTo('inventory', invData)
-			const result = await org.find()
+			// 找到inventory_name 为inventoryName01的Inventory对象
+			const invData = await new Parse.Query(Inventory).equalTo('inventory_name', 'inventoryName01').first()
+			const result = await new Parse.Query(Organization).equalTo('inventory', invData).find()
 			result.should.have.length(1)
 		})
 
@@ -325,11 +261,8 @@ describe('test function', () => {
 			const currentUser = await Parse.User.logIn('secondUser', 'secondUser')
 			const currentUserToken = currentUser.getSessionToken()
 			await Parse.User.become(currentUserToken)
-			const inv = new Parse.Query(Inventory)
-			const invData = await inv.first()
-			const org = new Parse.Query(Organization)
-			org.equalTo('inventory', invData)
-			const result = await org.find()
+			const invData = await new Parse.Query(Inventory).equalTo('inventory_name', 'inventoryName01').first()
+			const result = await new Parse.Query(Organization).equalTo('inventory', invData).find()
 			result.should.have.length(0)
 		})
 
@@ -343,16 +276,12 @@ describe('test function', () => {
 			const currentUserToken = firstUser.getSessionToken()
 			await Parse.User.become(currentUserToken)
 
-			const roleQuery = new Parse.Query(Organization)
-			const organizationObj = await roleQuery.first()
+			const organizationObj = await new Parse.Query(Organization).equalTo('organization_name', 'organizationName01').first()
 			const orgReadRole = await organizationObj.createRole('read', organizationObj.className)
-			const invQuery = new Parse.Query(Inventory)
-			const inventoryObj = await invQuery.first()
+			const inventoryObj = await new Parse.Query(Inventory).equalTo('inventory_name', 'inventoryName01').first()
 			const invReadRole = await organizationObj.createRole('read', inventoryObj.className)
 
-			const userQuery = new Parse.Query(Parse.User)
-			const thirdUser = await userQuery.equalTo('username', 'thirdUser').first()
-
+			const thirdUser = await new Parse.Query(Parse.User).equalTo('username', 'thirdUser').first()
 			orgReadRole.getUsers().add(thirdUser)
 			invReadRole.getUsers().add(thirdUser)
 			await orgReadRole.save()
@@ -361,8 +290,7 @@ describe('test function', () => {
 			const thirdUserLogin = await Parse.User.logIn('thirdUser', 'thirdUser')
 			const thirdUserToken = thirdUserLogin.getSessionToken()
 			await Parse.User.become(thirdUserToken)
-			const thirdUserInvQuery = new Parse.Query(Inventory)
-			const thirdUserInventoryObj = await thirdUserInvQuery.first()
+			const thirdUserInventoryObj = await new Parse.Query(Inventory).equalTo('inventory_name', 'inventoryName01').first()
 			const org = new Parse.Query(Organization)
 			const result = await org.equalTo('inventory', thirdUserInventoryObj).find()
 			result.should.be.length(1)
@@ -370,16 +298,14 @@ describe('test function', () => {
 	})
 
 	describe('testremoveEntity', () => {
-		it('finalData should be undefined', async () => {
+		it('finalData should be true', async () => {
 			Parse.User.enableUnsafeCurrentUser()
 			const currentUser = await Parse.User.logIn('firstUser', 'firstUser')
 			const currentUserToken = currentUser.getSessionToken()
 			await Parse.User.become(currentUserToken)
 			await testremoveEntity()
-			const inv = new Parse.Query(Inventory)
-			const invresult = await inv.first()
-			const org = new Parse.Query(Organization)
-			const result = await org.equalTo('inventory', invresult).first()
+			const invresult = await new Parse.Query(Inventory).equalTo('inventory_name', 'inventoryName01').first()
+			const result = await new Parse.Query(Organization).equalTo('inventory', invresult).first()
 			const finalData = (result === undefined)
 			finalData.should.be.true()
 		})
@@ -389,10 +315,8 @@ describe('test function', () => {
 			const currentUser = await Parse.User.logIn('thirdUser', 'thirdUser')
 			const currentUserToken = currentUser.getSessionToken()
 			await Parse.User.become(currentUserToken)
-			const inv = new Parse.Query(Inventory)
-			const invresult = await inv.first()
-			const org = new Parse.Query(Organization)
-			const result = await org.equalTo('inventory', invresult).first()
+			const invresult = await new Parse.Query(Inventory).equalTo('inventory_name', 'inventoryName01').first()
+			const result = await new Parse.Query(Organization).equalTo('inventory', invresult).first()
 			const finalData = (result === undefined)
 			finalData.should.be.true()
 		})
@@ -418,39 +342,30 @@ describe('test function', () => {
 			const firstUserToken = firstUser.getSessionToken()
 			await Parse.User.become(firstUserToken)
 
-			const proQuery = new Parse.Query(Project)
-			const projectObj = await proQuery.first()
-			const roleQuery = new Parse.Query(Organization)
-			const organizationObj = await roleQuery.first()
+			const projectObj = await new Parse.Query(Project).equalTo('project_name', 'projectName01').first()
+			const organizationObj = await new Parse.Query(Organization).equalTo('organization_name', 'organizationName01').first()
 			const proRole = await organizationObj.createRole('read', projectObj.className)
-			const userQuery = new Parse.Query(Parse.User)
-			const thirdUser = await userQuery.equalTo('username', 'thirdUser').first()
+			const thirdUser = await new Parse.Query(Parse.User).equalTo('username', 'thirdUser').first()
 			proRole.getUsers().add(thirdUser)
 			await proRole.save()
 			const currentUser = await Parse.User.logIn('thirdUser', 'thirdUser')
 			await Parse.User.become(currentUser.getSessionToken())
-			const pro = new Parse.Query(Project)
-			const proData = await pro.first()
-			const org = new Parse.Query(Organization)
-			org.equalTo('Projects', proData)
-			const result = await org.find()
+			const proData = await new Parse.Query(Project).equalTo('project_name', 'projectName01').first()
+			const result = await new Parse.Query(Organization).equalTo('Projects', proData).find()
 			result.should.have.length(1)
 		})
 	})
 
 	describe('testremoveEntityGroup', () => {
-		it('result length should equal 0', async () => {
+		it('finalData should be true', async () => {
 			Parse.User.enableUnsafeCurrentUser()
 			const currentUser = await Parse.User.logIn('firstUser', 'firstUser')
 			const currentUserToken = currentUser.getSessionToken()
 			await Parse.User.become(currentUserToken)
 			await testremoveEntityGroup()
-			const pro = new Parse.Query(Project)
-			const proData = await pro.first()
-			const roleQuery = new Parse.Query(Organization)
-			roleQuery.equalTo('Projects', proData)
-			const data = await roleQuery.first()
-			const finalData = (data === undefined)
+			const proData = await new Parse.Query(Project).equalTo('project_name', 'projectName01').first()
+			const organizationObj = await new Parse.Query(Organization).equalTo('Projects', proData).first()
+			const finalData = (organizationObj === undefined)
 			finalData.should.be.true()
 		})
 	})
@@ -463,9 +378,7 @@ describe('test function', () => {
 			await Parse.User.become(currentUserToken)
 			await addMemberstest()
 			const secondUser = await new Parse.Query(Parse.User).equalTo('username', 'secondUser').first()
-			const org = new Parse.Query(Organization)
-			org.equalTo('members', secondUser)
-			const result = await org.find()
+			const result = await new Parse.Query(Organization).equalTo('members', secondUser).find()
 			result.should.have.length(1)
 		})
 
@@ -474,14 +387,15 @@ describe('test function', () => {
 			const currentUser = await Parse.User.logIn('secondUser', 'secondUser')
 			const currentUserToken = currentUser.getSessionToken()
 			await Parse.User.become(currentUserToken)
-			const org = new Parse.Query(Organization)
-			const result = await org.first()
+			const result = await new Parse.Query(Organization).equalTo('organization_name', 'organizationName01').first()
 			// 原始的organization_name为'organization01',现在更改为changrForOrganization01
 			result.set('organization_name', 'changrForOrganization01')
 			await result.save()
-			const changeDataResult = await org.equalTo('organization_name',
-				'changrForOrganization01').find()
+			const changeDataResult = await new Parse.Query(Organization).equalTo('organization_name', 'changrForOrganization01').find()
 			changeDataResult.should.have.length(1)
+
+			const originalData = await new Parse.Query(Organization).equalTo('organization_name', 'organization01').find()
+			originalData.should.have.length(0)
 		})
 	})
 
@@ -492,9 +406,7 @@ describe('test function', () => {
 			const currentUserToken = currentUser.getSessionToken()
 			await Parse.User.become(currentUserToken)
 			await delMembers()
-			const org = new Parse.Query(Organization)
-			org.equalTo('members', currentUser)
-			const result = await org.find()
+			const result = await new Parse.Query(Organization).equalTo('members', currentUser).find()
 			result.should.have.length(0)
 		})
 
@@ -503,8 +415,7 @@ describe('test function', () => {
 			const currentUser = await Parse.User.logIn('secondUser', 'secondUser')
 			const currentUserToken = currentUser.getSessionToken()
 			await Parse.User.become(currentUserToken)
-			const org = new Parse.Query(Organization)
-			const result = await org.find()
+			const result = await new Parse.Query(Organization).equalTo('organization_name', 'changrForOrganization01').find()
 			result.should.have.length(0)
 		})
 	})
@@ -512,8 +423,7 @@ describe('test function', () => {
 	describe('setMemberPermissiontest', () => {
 		it('result length should equal 0', async () => {
 			await setMemberPermissiontest()
-			const pro = new Parse.Query(Project)
-			const result = await pro.find()
+			const result = await new Parse.Query(Project).find()
 			result.length.should.be.oneOf([0, 1])
 		})
 	})
