@@ -46,19 +46,16 @@ class EntityGroup extends Parse.Object {
 
 	async setACLAndAddUserToRole(parent, roleName, permission) {
 		const grantRoleName = createNewRoleName(parent.className, parent.id, 'grant')
-		const currentUser = Parse.User.current()
 		const roleACL = new Parse.ACL()
 		roleACL.setRoleReadAccess(grantRoleName, true)
 		roleACL.setRoleWriteAccess(grantRoleName, true)
 		let roleObj
 		if (permission === 'grant') {
-			roleACL.setReadAccess(currentUser, true)
-			roleACL.setWriteAccess(currentUser, true)
 			roleObj = new Parse.Role(grantRoleName, roleACL)
 		} else {
 			roleObj = new Parse.Role(roleName, roleACL)
 		}
-		roleObj.getUsers().add(currentUser)
+		roleObj.getUsers().add(Parse.User.current())
 		await roleObj.save()
 		return roleObj
 	}
@@ -101,15 +98,7 @@ class EntityGroup extends Parse.Object {
 		return this
 	}
 
-	// 把实体添加到当前实体组的fieldName数组字段里，并设置好权限规则
-	// fieldName：String，字段名  entity：Parse.Object，实体
-	async addEntity(fieldName, entity) {
-		if (!(entity instanceof Parse.Object)) {
-			throw new Error('entity must be Parse.Object type')
-		}
-		if (typeof fieldName !== 'string') {
-			throw new Error('fieldName must be String type')
-		}
+	async ensureRoleAndSetAcl(fieldName, entity) {
 		await this.ensureRole('grant')
 		const entityGroupReadRole = await this.ensureRole('read', this.className)
 		const entityGroupwriteRole = await this.ensureRole('write', this.className)
@@ -128,6 +117,18 @@ class EntityGroup extends Parse.Object {
 		entity.setACL(entityACL)
 		entity.set('parent', this)
 		await entity.save()
+	}
+
+	// 把实体添加到当前实体组的fieldName数组字段里，并设置好权限规则
+	// fieldName：String，字段名  entity：Parse.Object，实体
+	async addEntity(fieldName, entity) {
+		if (!(entity instanceof Parse.Object)) {
+			throw new Error('entity must be Parse.Object type')
+		}
+		if (typeof fieldName !== 'string') {
+			throw new Error('fieldName must be String type')
+		}
+		await this.ensureRoleAndSetAcl(fieldName, entity)
 	}
 
 	// 把实体从当前实体组的fieldName数组字段里删除
@@ -155,23 +156,7 @@ class EntityGroup extends Parse.Object {
 		if (typeof fieldName !== 'string') {
 			throw new Error('fieldName must be String type')
 		}
-		this.relation(fieldName).add(entityGroup)
-		const thisentityGroupReadRole = await this.ensureRole('read', this.className)
-		const thisentityGroupwriteRole = await this.ensureRole('write', this.className)
-		const thisentityGroup = new Parse.ACL()
-		thisentityGroup.setRoleReadAccess(thisentityGroupReadRole, true)
-		thisentityGroup.setRoleWriteAccess(thisentityGroupwriteRole, true)
-		this.setACL(thisentityGroup)
-		await this.save()
-
-		const readRole = await this.ensureRole('read', entityGroup.className)
-		const writeRole = await this.ensureRole('write', entityGroup.className)
-		const entityGroupAcl = new Parse.ACL()
-		entityGroupAcl.setRoleReadAccess(readRole, true)
-		entityGroupAcl.setRoleWriteAccess(writeRole, true)
-		entityGroup.set('parent', this)
-		entityGroup.setACL(entityGroupAcl)
-		await entityGroup.save()
+		await this.ensureRoleAndSetAcl(fieldName, entityGroup)
 	}
 
 	// 把实体组从当前实体组fieldName数组字段里删除，并设置好权限规则实体组下的资源也会被删除
