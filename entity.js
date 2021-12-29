@@ -98,7 +98,15 @@ class EntityGroup extends Parse.Object {
 		return this
 	}
 
-	async ensureRoleAndSetAcl(fieldName, entity) {
+	// 把实体添加到当前实体组的fieldName数组字段里，并设置好权限规则
+	// fieldName：String，字段名  entity：Parse.Object，实体
+	async addEntity(fieldName, entity) {
+		if (!(entity instanceof Parse.Object)) {
+			throw new Error('entity must be Parse.Object type')
+		}
+		if (typeof fieldName !== 'string') {
+			throw new Error('fieldName must be String type')
+		}
 		await this.ensureRole('grant')
 		const entityGroupReadRole = await this.ensureRole('read', this.className)
 		const entityGroupwriteRole = await this.ensureRole('write', this.className)
@@ -117,18 +125,6 @@ class EntityGroup extends Parse.Object {
 		entity.setACL(entityACL)
 		entity.set('parent', this)
 		await entity.save()
-	}
-
-	// 把实体添加到当前实体组的fieldName数组字段里，并设置好权限规则
-	// fieldName：String，字段名  entity：Parse.Object，实体
-	async addEntity(fieldName, entity) {
-		if (!(entity instanceof Parse.Object)) {
-			throw new Error('entity must be Parse.Object type')
-		}
-		if (typeof fieldName !== 'string') {
-			throw new Error('fieldName must be String type')
-		}
-		await this.ensureRoleAndSetAcl(fieldName, entity)
 	}
 
 	// 把实体从当前实体组的fieldName数组字段里删除
@@ -150,13 +146,7 @@ class EntityGroup extends Parse.Object {
 	// 把实体组添加到当前实体组fieldName数组字段里，并设置好权限规则
 	// fieldName：String，字段名 entityGroup：EntityGroup，实体组
 	async addEntityGroup(fieldName, entityGroup) {
-		if (!(entityGroup instanceof EntityGroup)) {
-			throw new Error('entityGroup must be EntityGroup type')
-		}
-		if (typeof fieldName !== 'string') {
-			throw new Error('fieldName must be String type')
-		}
-		await this.ensureRoleAndSetAcl(fieldName, entityGroup)
+		await this.addEntity(fieldName, entityGroup)
 	}
 
 	// 把实体组从当前实体组fieldName数组字段里删除，并设置好权限规则实体组下的资源也会被删除
