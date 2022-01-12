@@ -25,15 +25,12 @@ async function recursivelyFind(realtionResult) {
 		return realtionResult
 	}
 	const queryResult = await new Parse.Query(getParent.className).equalTo('id', getParent.className.id).first()
-	if (!queryResult.get('parent')) {
-		return queryResult
-	}
 	const result = await recursivelyFind(queryResult)
 	return result
 }
 // 创建角色名称的规则 实体组名称__实体组id__权限名称__实体名
 function createNewRoleName(entityGroupClassName, entityGroupId, permission, entityClassName) {
-	if (entityClassName) {
+	if (permission !== 'grant') {
 		return [entityGroupClassName, entityGroupId, permission, entityClassName].join('__')
 	}
 	return [entityGroupClassName, entityGroupId, permission].join('__')
@@ -44,14 +41,29 @@ class EntityGroup extends Parse.Object {
 		return ['read', 'write']
 	}
 
-	async setACLAndAddUserToRole(parent, roleName, permission) {
-		const grantRoleName = createNewRoleName(parent.className, parent.id, 'grant')
+	async setACLAndAddUserToRole(rootClassName, rootId, permission, childClassName) {
+		const grantRoleName = createNewRoleName(rootClassName, rootId, 'grant')
+		const grantRoleObj = await new Parse.Query(Parse.Role).equalTo('name', grantRoleName).first()
+		let roleName
+		let role
+
+		if (childClassName) {
+			roleName = createNewRoleName(this.className, this.id, permission, childClassName)
+			if (roleName) {
+				role = await new Parse.Query(Parse.Role).equalTo('name', roleName).first()
+			}
+		}
+
 		const roleACL = new Parse.ACL()
 		roleACL.setRoleReadAccess(grantRoleName, true)
 		roleACL.setRoleWriteAccess(grantRoleName, true)
 		let roleObj
-		if (permission === 'grant') {
+		if (permission === 'grant' && !grantRoleObj) {
 			roleObj = new Parse.Role(grantRoleName, roleACL)
+		} else if (permission === 'grant' && grantRoleObj) {
+			return grantRoleObj
+		} else if (role) {
+			return role
 		} else {
 			roleObj = new Parse.Role(roleName, roleACL)
 		}
@@ -63,12 +75,7 @@ class EntityGroup extends Parse.Object {
 	async ensurePermissionGrant() {
 		// ensurePermissionGrant 只用来验证grant权限是否存在，不存在则自动创建,创建的时候把当前用户添加到grant角色
 		const parent = await recursivelyFind(this)
-		const grantRole = createNewRoleName(parent.className, parent.id, 'grant')
-		let grantRoleObj
-		grantRoleObj = await new Parse.Query(Parse.Role).equalTo('name', grantRole).first()
-		if (!grantRoleObj) {
-			grantRoleObj = await this.setACLAndAddUserToRole(parent, null, 'grant')
-		}
+		const grantRoleObj = await this.setACLAndAddUserToRole(parent.className, parent.id, 'grant', null)
 		return grantRoleObj
 	}
 
@@ -79,12 +86,10 @@ class EntityGroup extends Parse.Object {
 			Role = await this.ensurePermissionGrant()
 			return Role
 		}
-		const roleName = createNewRoleName(this.className, this.id, permission, className)
-		Role = await new Parse.Query(Parse.Role).equalTo('name', roleName).first()
 		// 当传入的permission 是read或者write时且roleName不存在的时候就自动创建再返回该角色名对象,同时把当前用户的信息添加到该角色
 		if (!Role) {
 			const parent = await recursivelyFind(this)
-			Role = await this.setACLAndAddUserToRole(parent, roleName)
+			Role = await this.setACLAndAddUserToRole(parent.className, parent.id, permission, className)
 			return Role
 		}
 		return Role
@@ -106,6 +111,12 @@ class EntityGroup extends Parse.Object {
 		}
 		if (typeof fieldName !== 'string') {
 			throw new Error('fieldName must be String type')
+		}
+		const { attributes } = entity
+		const findResult = await this.relation(fieldName).query().equalTo(Object.keys(attributes)[0],
+			attributes[Object.keys(attributes)[0]]).find()
+		if (findResult.length) {
+			return
 		}
 		await this.ensureRole('grant')
 		const entityGroupReadRole = await this.ensureRole('read', this.className)
@@ -208,14 +219,11 @@ class EntityGroup extends Parse.Object {
 			v, this.className))
 		const userRoleList = await new Parse.Query(Parse.Role).containedIn('name', [...roleArray, grantRole]).equalTo('users', user).find()
 		for (let index = 0; index < userRoleList.length; index += 1) {
-			// 创建某个角色的时候会把当时的用户添加到角色下并把relation关系存在在Role表的users字段中
-			if (userRoleList[index].attributes.name.indexOf('grant') !== -1) {
-				const roleAcl = userRoleList[index].getACL()
-				// 拿到当前角色的ACl,禁止用户读写该角色
-				roleAcl.setReadAccess(user, false)
-				roleAcl.setWriteAccess(user, false)
-				userRoleList[index].setACL(roleAcl)
-			}
+			const roleAcl = userRoleList[index].getACL()
+			// 拿到当前角色的ACl,禁止用户读写该角色
+			roleAcl.setReadAccess(user, false)
+			roleAcl.setWriteAccess(user, false)
+			userRoleList[index].setACL(roleAcl)
 			userRoleList[index].relation('users').remove(user)
 			await userRoleList[index].save()
 		}

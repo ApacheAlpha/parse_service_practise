@@ -328,11 +328,8 @@ describe('test function', () => {
 			const currentUser = await Parse.User.logIn('firstUser', 'firstUser')
 			await Parse.User.become(currentUser.getSessionToken())
 			await testAddEntityGroup()
-			const pro = new Parse.Query(Project)
-			const proData = await pro.first()
-			const org = new Parse.Query(Organization)
-			org.equalTo('Projects', proData)
-			const result = await org.find()
+			const proData = await new Parse.Query(Project).first()
+			const result = await new Parse.Query(Organization).equalTo('Projects', proData).find()
 			result.should.have.length(1)
 		})
 
