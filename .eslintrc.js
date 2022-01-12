@@ -2,11 +2,13 @@ module.exports = {
 	env: {
 		es6: true,
 		node: true,
+		mocha: true,
 	},
 	extends: 'airbnb-base',
 	root: true,
+	// allowIndentationTabs: true,
 	rules: {
-		'no-tabs': 0,
+		'no-tabs': ['error', { allowIndentationTabs: true }],
 		indent: [
 			'error',
 			'tab',
@@ -15,10 +17,13 @@ module.exports = {
 			'error',
 			'unix',
 		],
+		quotes: [
+			'error',
+			'single',
+		],
 		semi: [
 			'error',
 			'never',
 		],
-		'object-curly-newline': 0,
 	},
 }
